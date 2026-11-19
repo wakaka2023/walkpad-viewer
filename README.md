@@ -33,6 +33,10 @@ python collector/launch_workbench.py --stop   # 关掉后台
 
 支持三类设备：自研鞋垫（D56，带压力）、自研独立 IMU（同协议、无压力通道）、维特 WT901 系列。零偏补偿对自研两类设备都生效，维特走原始值。录到的帧按 app 同构的列名导出 parquet。设备与协议细节见 [`collector/README.md`](collector/README.md)。
 
+## `imu-cop`
+
+[`imu-cop/`](imu-cop/README.md) 是独立的 Python 实验模块，用双脚六轴 IMU 以 50 Hz 估计每只脚的压力中心。右脚使用承重门控遮蔽摆动帧，配套权重可从 `imu-cop` 预发布下载。
+
 ## 约定
 
 - 采集数据、导出的 parquet、`collector/runtime/` 与 `collector/records/` 不入库；解包的 APK（`apk_labpad/`）只在本地做协议参考，也不入库。
