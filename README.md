@@ -35,7 +35,7 @@ python collector/launch_workbench.py --stop   # 关掉后台
 
 ## `imu-cop`
 
-[`imu-cop/`](imu-cop/README.md) 是独立的 Python 实验模块，用双脚六轴 IMU 以 50 Hz 估计每只脚的压力中心。右脚使用承重门控遮蔽摆动帧，配套权重可从 `imu-cop` 预发布下载。
+[`imu-cop/`](imu-cop/README.md) 用双脚六轴 IMU 以 50 Hz 估计每只脚的压力中心。单文件 `imu-cop.onnx` 包含双脚坐标和右脚承重门控，也可从 `imu-cop` 预发布下载。
 
 ## 约定
 

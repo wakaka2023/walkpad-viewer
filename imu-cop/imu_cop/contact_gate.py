@@ -42,7 +42,7 @@ class ContactGate(nn.Module):
         self.classifier = nn.Sequential(nn.Linear(65,24), nn.GELU(), nn.Linear(24,1))
 
     def from_features(self, feat, mask):
-        b = len(feat)
+        b = feat.shape[0]
         m = mask.unsqueeze(-2)
         vals = [feat*m]
         if self.relative:

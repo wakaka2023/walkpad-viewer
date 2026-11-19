@@ -1,18 +1,42 @@
 # imu-cop
 
-从左右脚背的六轴 IMU 估计各脚的压力中心（CoP）。原通用坐标模型用最近 150 帧；实验分支用最近 31 帧估计右脚载荷，并与原模型载荷分数融合。右脚显示门控更新；左脚门控和两脚原始坐标仍来自通用模型。每 20 ms 输出一次，推理不使用未来帧。这是独立的 Python 推理模块，Walkpad 查看器的网页不会自动调用它。
+从左右脚背的六轴 IMU 估计各脚的压力中心（CoP）。原通用坐标模型用最近 150 帧；实验分支用最近 31 帧估计右脚载荷，并与原模型载荷分数融合。右脚显示门控更新；左脚门控和两脚原始坐标仍来自通用模型。每 20 ms 输出一次，推理不使用未来帧。可用 ONNX Runtime 或 PyTorch 独立运行，Walkpad 查看器的网页不会自动调用它。
 
-从 [imu-cop 预发布](https://github.com/wakaka2023/walkpad-viewer/releases/tag/imu-cop)下载两份配套权重，放入本目录。也可以下载该预发布的完整源码快照来运行示例。
+从 [imu-cop 预发布](https://github.com/wakaka2023/walkpad-viewer/releases/tag/imu-cop)下载 **`imu-cop.onnx`** 即可使用 ONNX 推理。只有运行原 PyTorch 实现或重新导出时才需要两份 `.pt` 文件。
 
 | GitHub Release 文件 | 用途 |
 |---|---|
+| `imu-cop.onnx` | 单文件模型，包含双脚坐标网络和右脚承重门控（ONNX opset 17） |
 | `imu-cop-universal-50hz-seed42.pt` | 双脚原坐标与载荷模型 |
 | `imu-cop-right-gate-50hz-seed42.pt` | 右脚短窗口权重与校准参数 |
-| `SHA256SUMS.txt` | 权重文件校验值（加载时也校验） |
+| `SHA256SUMS.txt` | 两份 PyTorch 权重的校验值（加载时也校验） |
 
-文件为 PyTorch 研究权重。训练标签来源为 EMG、Grouvel、ImbalanSense、UnderPressure 和 WHIP 的公开研究数据。此目录与 Release 不包含原始数据、个人 IMU 记录或设备标识。使用或再分发应遵守相应来源的授权。
+训练标签来源为 EMG、Grouvel、ImbalanSense、UnderPressure 和 WHIP 的公开研究数据。此目录与 Release 不包含原始数据、个人 IMU 记录或设备标识。使用或再分发应遵守相应来源的授权。
 
-## 最小推理示例
+## ONNX 推理
+
+安装 `python -m pip install onnxruntime numpy`，然后在 `imu-cop.onnx` 所在目录运行：
+
+```python
+import numpy as np
+import onnxruntime as ort
+
+session = ort.InferenceSession('imu-cop.onnx', providers=['CPUExecutionProvider'])
+imu = np.zeros((1, 2, 6, 150), dtype=np.float32)  # 示例形状，替换成实际传感器窗口
+available = np.ones((1, 2, 150), dtype=bool)
+cop, load_score, show = session.run(None, {'imu': imu, 'available': available})
+visible_cop = np.where(show[..., None], cop, np.nan)
+```
+
+`imu` 为 `float32[B,2,6,150]`，`available` 为 `bool[B,2,150]`，批量大小 `B` 可变。输入须先做 8 Hz 因果低通并用过去样本对齐至 50 Hz；可用帧的数值必须有限。输出依次是 `cop` (`float32[B,2,2]`)、`load_score` (`float32[B,2]`) 和 `show` (`bool[B,2]`)。用 `show` 隐藏摆动、缺帧和未热身的点。实时使用时，每 20 ms 更新一次窗口；模型接收窗口，不负责读取原始文件或接收 BLE 数据。
+
+如需从两份 PyTorch 权重复现导出，在本目录安装 `python -m pip install -r requirements.txt onnx` 后运行：
+
+```bash
+python export_onnx.py imu-cop-universal-50hz-seed42.pt imu-cop-right-gate-50hz-seed42.pt
+```
+
+## PyTorch 推理
 
 在仓库根目录运行：
 

@@ -64,6 +64,9 @@ class RightFootCoP(nn.Module):
         imu = imu.masked_fill(~mask.unsqueeze(2), 0.)
         if not torch.isfinite(imu).all():
             raise ValueError('Available IMU samples must be finite')
+        return self._predict_masked(imu, mask)
+
+    def _predict_masked(self, imu, mask):
         available = mask.to(dtype=imu.dtype)
         cop, logit, _ = self.base(imu, available)
         probability = fuse_right(logit, self.gate(imu, available), self.calibration).sigmoid()
