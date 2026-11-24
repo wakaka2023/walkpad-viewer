@@ -4,7 +4,7 @@ export const NCH = 56;
 
 /* 查看器版本：只标这一页的代码，跟文件里的 schema_version 是两回事。改行为就升这里；
    数据格式差异不靠版本号分支 —— 解析按列名探测，老 62 列与新包同一套代码。 */
-export const APP_VER = '3.50.0';
+export const APP_VER = '3.52.0';
 export const ACTIVITY4 = {id: 'walkpad-activity4-50hz-v2', kind: 'activity4'} as const;
 export const ACTIVITY4_ANNOTATED = {id: `${ACTIVITY4.id}-review-turn`, kind: 'activity4-annotated'} as const;
 
