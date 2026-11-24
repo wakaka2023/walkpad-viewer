@@ -48,8 +48,12 @@ class Recorder:
         self.thread = None
         self.error = None
         self.current = None
+        self.metadata = {}
         self.session_id = None
-        self.accepting = False
+        self.state_name = 'stopped'
+        self.periods = []
+        self.session_start_monotonic_ms = None
+        self.effective_us = 0
         self.written = 0
         self.frames = 0
         self.chunks = 0
@@ -65,6 +69,17 @@ class Recorder:
             except (OSError,ValueError,KeyError):
                 continue
 
+    @property
+    def accepting(self):
+        # 暂停期仍然收包落盘：数据不能静默丢弃，只是不计入有效采集时间
+        return self.state_name in ('recording','paused')
+
+    @accepting.setter
+    def accepting(self, value):
+        # 外部置 False 表示本次记录不可继续；period 的收尾由 stop 与导出兜底处理
+        if not value:
+            self.state_name = 'stopped'
+
     def start(self, metadata):
         with self._lock:
             if self.accepting or self.thread and self.thread.is_alive():
@@ -76,15 +91,71 @@ class Recorder:
             self.error = None
             self.written = self.frames = self.chunks = 0
             self.videos = {}
+            self.periods = []
+            self.effective_us = 0
+            self.session_start_monotonic_ms = time.monotonic()*1000
+            self.periods.append(self._open_period(self.session_start_monotonic_ms))
             self.metadata = dict(metadata,session_id=self.session_id,schema_version='walkpad.capture.v2',
-                                 started_epoch_ms=time.time()*1000,started_monotonic_ms=time.monotonic()*1000,status='recording',
+                                 started_epoch_ms=time.time()*1000,started_monotonic_ms=self.session_start_monotonic_ms,status='recording',
+                                 clock_domain='python.monotonic_ns',
+                                 effective_time_rule='exclude_paused_intervals',
+                                 periods=self.periods,
                                  time_contract='device calendars and source monotonic domains are distinct; no hardware synchronization asserted',
                                  pressure_contract='70 held slots plus independent sparse snapshot and observed slot indices; unit only confirmed by device readback')
             atomic_json(self.current/'manifest.json',self.metadata)
-            self.accepting = True
+            self.state_name = 'recording'
             self.thread = threading.Thread(target=self._run,name='capture-writer',daemon=True)
             self.thread.start()
             return self.session_id
+
+    def _open_period(self, now):
+        start = self.session_start_monotonic_ms
+        return dict(period_id='p%d' % (len(self.periods)+1),period_no=len(self.periods)+1,
+                    start_monotonic_ms=now,
+                    start_session_elapsed_us=int(round((now-start)*1000)),
+                    start_effective_elapsed_us=self.effective_us,
+                    end_monotonic_ms=None,end_session_elapsed_us=None,end_effective_elapsed_us=None,end_reason=None)
+
+    def _close_period(self, now, reason):
+        period = self.periods[-1]
+        if period['end_monotonic_ms'] is not None:
+            return
+        period['end_monotonic_ms'] = now
+        period['end_session_elapsed_us'] = int(round((now-self.session_start_monotonic_ms)*1000))
+        # 有效时间轴累加的是真实录制时长，暂停区间不进累计
+        self.effective_us += int(round((now-period['start_monotonic_ms'])*1000))
+        period['end_effective_elapsed_us'] = self.effective_us
+        period['end_reason'] = reason
+
+    def _persist_meta(self):
+        with self._lock:
+            if self.current is None or not self.metadata:
+                return
+            self.metadata['periods'] = self.periods
+            self.metadata['effective_us'] = self.effective_us
+            self.metadata['videoAnchors'] = [dict(videoId=key,file=state['file'],chunks=state['next'],
+                                                  firstMonotonicMs=state.get('first_monotonic_ms'),
+                                                  lastMonotonicMs=state.get('last_monotonic_ms'))
+                                             for key,state in self.videos.items()]
+            atomic_json(self.current/'manifest.json',self.metadata)
+
+    def pause(self):
+        with self._lock:
+            if self.state_name != 'recording':
+                raise ValueError('当前没有进行中的记录')
+            self._close_period(time.monotonic()*1000,'pause')
+            self.state_name = 'paused'
+            self._persist_meta()
+            return self.state()
+
+    def resume(self):
+        with self._lock:
+            if self.state_name != 'paused':
+                raise ValueError('记录未处于暂停状态')
+            self.periods.append(self._open_period(time.monotonic()*1000))
+            self.state_name = 'recording'
+            self._persist_meta()
+            return self.state()
 
     def put(self, kind, value):
         with self._lock:
@@ -111,7 +182,13 @@ class Recorder:
 
     def stop(self):
         with self._lock:
-            self.accepting = False
+            if self.state_name == 'recording':
+                self._close_period(time.monotonic()*1000,'stop')
+            self.state_name = 'stopped'
+            try:
+                self._persist_meta()
+            except OSError:
+                pass
         if self.thread:
             self.thread.join(timeout=30)
             if self.thread.is_alive():
@@ -127,7 +204,7 @@ class Recorder:
         try:
             raw = (self.current/'raw_events.jsonl').open('a',encoding='utf-8')
             decisions = (self.current/'decisions.jsonl').open('a',encoding='utf-8')
-            while self.accepting or not self.queue.empty():
+            while self.state_name != 'stopped' or not self.queue.empty():
                 try:
                     kind, value = self.queue.get(timeout=.1)
                 except queue.Empty:
@@ -181,9 +258,10 @@ class Recorder:
         self.chunks += 1
 
     def state(self):
-        return dict(recording=self.accepting,session_id=self.session_id,path=str(self.current or ''),
+        return dict(recording=self.state_name == 'recording',paused=self.state_name == 'paused',session_id=self.session_id,path=str(self.current or ''),
                     events=self.written,frames=self.frames,chunks=self.chunks,queued=self.queue.qsize(),
-                    error=self.error,recovered=self.recovered,draining=bool(not self.accepting and self.thread and self.thread.is_alive()))
+                    periods=len(self.periods),effective_us=self.effective_us,
+                    error=self.error,recovered=self.recovered,draining=bool(self.state_name == 'stopped' and self.thread and self.thread.is_alive()))
 
     def sessions(self):
         result = []
@@ -227,7 +305,10 @@ class Recorder:
             if state is None:
                 if index != 0:
                     raise ValueError('录像块必须从0开始')
-                state = self.videos[video_id] = dict(session=session,next=0,last=-1)
+                # 只记首块到达的主机单调钟：这是录像唯一的对时证据，不能当成首帧拍摄时刻
+                state = self.videos[video_id] = dict(session=session,next=0,last=-1,file=None,
+                                                    first_monotonic_ms=time.monotonic()*1000,
+                                                    last_monotonic_ms=None)
             if state['session'] != session:
                 raise ValueError('video session mismatch')
             if index == state['last']:
@@ -239,4 +320,10 @@ class Recorder:
             with target.open('ab') as f:
                 f.write(data); f.flush(); os.fsync(f.fileno())
             state['last'] = index; state['next'] += 1
+            state['file'] = target.name; state['last_monotonic_ms'] = time.monotonic()*1000
+            if index == 0:
+                try:
+                    self._persist_meta()
+                except OSError:
+                    pass
             return {'next':state['next'],'file':target.name}

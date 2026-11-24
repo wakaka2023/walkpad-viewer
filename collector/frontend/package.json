@@ -1,6 +1,6 @@
 {
   "name": "walkpad-capture-workbench",
-  "version": "2.19.1",
+  "version": "2.21.0",
   "private": true,
   "type": "module",
   "scripts": {

@@ -1,4 +1,5 @@
 import asyncio
+import io
 import base64
 import json
 import struct
@@ -14,7 +15,7 @@ from fastapi.testclient import TestClient
 from backend.app import create_app
 from backend import capture as capture_module
 from backend.capture import Capture
-from backend.exports import export_standard, export_txt
+from backend.exports import export_package, export_standard, export_txt
 from backend.phone import Phone, validate
 from backend.protocol import Decoder, RAW_V1, RAW_V2, command_packet, demo_packet, slot_map
 from backend.storage import Recorder
@@ -265,8 +266,12 @@ def test_video_container_follows_mime(tmp_path):
     sid = recorder.start({'source':'test'})
     mp4_id = 'b'*32
     assert recorder.append_video(sid,mp4_id,0,'video/mp4;codecs=avc1',b'abc')['next'] == 1
+    assert recorder.append_video(sid,mp4_id,1,'video/mp4;codecs=avc1',b'def')['next'] == 2
     recorder.stop()
-    assert (recorder.current/('video_'+mp4_id+'.mp4')).read_bytes() == b'abc'
+    assert (recorder.current/('video_'+mp4_id+'.mp4')).read_bytes() == b'abcdef'
+    anchor = json.loads((recorder.current/'manifest.json').read_text(encoding='utf-8'))['videoAnchors'][0]
+    assert anchor['file'] == 'video_'+mp4_id+'.mp4' and anchor['chunks'] == 2
+    assert anchor['firstMonotonicMs'] <= anchor['lastMonotonicMs']
 
 
 def test_api_tokens_and_websocket_refresh(tmp_path):
@@ -665,4 +670,39 @@ def test_replay(tmp_path):
         await c.replay_task
         assert any(d['frames'] > 0 for d in c.devices.values() if d['source'] == 'replay')
         await c.close()
+    asyncio.run(run())
+
+
+def test_record_pause_resume_splits_periods(tmp_path):
+    async def run():
+        c = Capture(tmp_path,demo=True)
+        await c.start()
+        await c.demo('insole')
+        await c.record_start()
+        await asyncio.sleep(.6)
+        paused = await c.record_pause()
+        assert paused['paused'] and not paused['recording'] and paused['periods'] == 1
+        hold = paused['frames']
+        await asyncio.sleep(.5)
+        resumed = await c.record_resume()
+        assert resumed['recording'] and resumed['periods'] == 2
+        await asyncio.sleep(.6)
+        state = await c.record_stop()
+        assert not state['error'],state
+        assert state['frames'] > hold
+        manifest = json.loads((c.recorder.current/'manifest.json').read_text(encoding='utf-8'))
+        assert [p['end_reason'] for p in manifest['periods']] == ['pause','stop']
+        assert manifest['effective_time_rule'] == 'exclude_paused_intervals'
+        # 暂停区间落在两个周期之间，有效时长必须短于整段会话时长
+        assert state['effective_us'] < manifest['periods'][-1]['end_session_elapsed_us']
+        with zipfile.ZipFile(export_package(c.recorder.current)) as archive:
+            package = json.loads(archive.read('manifest.json'))
+            rows = []
+            for output in package['outputs']:
+                if output['path'].startswith('frames/'):
+                    rows += pq.read_table(io.BytesIO(archive.read(output['path'])),
+                                          columns=['periodId','validity']).to_pylist()
+        assert {r['periodId'] for r in rows} == {'p1','p2',None}
+        assert any(r['validity'] == 'outside_period' for r in rows)
+        assert len(package['sessionTimeline']['periods']) == 2
     asyncio.run(run())
