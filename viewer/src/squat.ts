@@ -8,6 +8,7 @@ import {state} from './core/state';
 import {squatCaptureMeta, squatInput, squatPackage} from './parse';
 import {applyWin, winOf} from './timewin';
 import {seekVideoSession} from './video';
+import {drawSquatPressure, hasSquatPressure, initSquatPressure, paintSquatPressure, renderSquatPressure, selectSquatPressureRep} from './squat-pressure-ui';
 import {drawSquatAngleChart, drawSquatTimeLabels, squatAngleLabels, squatTicks, squatTraceAt, squatX} from './squat-angle-chart';
 
 const HZ=50, colors=['#74849a','#526cdb','#b87616','#178477'];
@@ -17,12 +18,12 @@ const $=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(
 let source: typeof state.sides, worker: Worker, result: SquatResult, token=0, selected=-1, busy=false, clips: [number,number,number][]=[];
 let angles: SideAngles[] = [];
 let message='';
-let hoverTime: number|null=null, pickedAngleTime: number|null=null;
+let hoverTime: number|null=null, pickedTime: number|null=null;
 const hasAngles=()=>angles.some(side=>side.traces?.length);
 
 function reset(newCapture=false) {
   token++; worker?.terminate(); worker=null; busy=false; result=null; selected=-1; clips=[]; message=''; angles=[];
-  hoverTime=pickedAngleTime=null;
+  hoverTime=pickedTime=null;
   resetSquatMetrics(newCapture);
 }
 
@@ -76,9 +77,16 @@ async function run() {
 
 function focus(i:number) {
   selected=i; const r=result?.reps[i]; if (!r) return;
-  selectSquatMetrics(i);
+  selectSquatMetrics(i);selectSquatPressureRep(i);
   applyWin(r[0]-.20,r[3]+.20); drawSquat();
   $('squatRows').querySelectorAll('tr').forEach((row,j)=>row.classList.toggle('selected',i===j));
+}
+
+function goToRep(i: number,t=result?.reps[i]?.[0]) {
+  if(!Number.isFinite(t)) return;
+  pickedTime=t;
+  focus(i);
+  seekVideoSession(t,true);
 }
 
 function geometry(cv:HTMLCanvasElement) {
@@ -112,12 +120,23 @@ export function paintSquatCursor() {
     if (readout.textContent!==text) readout.textContent=text;
   }
 
-  const ready=hasAngles(), video=$('squatAngleVideoCursor'), guide=$('squatAngleHoverCursor');
-  const videoEdge=placeCursor(anglePlot,video,ready ? t : null,true);
-  const inspected=ready ? hoverTime ?? (video.hidden || videoEdge ? pickedAngleTime : null) : null;
-  placeCursor(timelinePlot,$('squatTimelineHoverCursor'),inspected,false);
-  placeCursor(anglePlot,guide,inspected,false);
-  const time=!guide.hidden ? inspected : !video.hidden && !videoEdge ? t : null;
+  const ready=hasAngles(), pressure=hasSquatPressure();
+  const inView=Number.isFinite(t) && !cursor.hidden && !edge;
+  const inspected=(ready || pressure) ? hoverTime ?? (inView ? null : pickedTime) : null;
+  const guide=$('squatTimelineHoverCursor');
+  placeCursor(timelinePlot,guide,inspected,false);
+  const time=!guide.hidden ? inspected : inView ? t : null;
+  placeCursor(anglePlot,$('squatAngleVideoCursor'),ready ? t : null,true);
+  placeCursor(anglePlot,$('squatAngleHoverCursor'),ready ? inspected : null,false);
+  const pressurePlot=geometry($<HTMLCanvasElement>('squatPressureChart'));
+  placeCursor(pressurePlot,$('squatPressureVideoCursor'),pressure ? t : null,true);
+  placeCursor(pressurePlot,$('squatPressureHoverCursor'),pressure ? inspected : null,false);
+  if(pressure) {
+    const repIndex=time==null ? -1 : result?.reps.findIndex(r=>r[0]<=time && time<=r[3]) ?? -1;
+    const trailStart=time==null ? null : repIndex>=0 ? Math.max(timelinePlot.a,result.reps[repIndex][0])
+      : result?.reps.length ? null : Math.max(timelinePlot.a,time-1);
+    paintSquatPressure(time,trailStart,repIndex);
+  }
   const values=$('squatAngleValues');
   values.hidden=!ready;
   if (!ready) return;
@@ -168,6 +187,8 @@ export function drawSquat() {
   const empty=busy ? '正在计算双踝角度…' : !result ? '点击「预测」后显示角度曲线' : !result.reps.length
     ? '没有完整深蹲，无法绘制角度曲线' : !hasAngles() ? '双踝数据不足，无法绘制角度曲线' : '当前时间窗没有可绘制的深蹲角度';
   drawSquatAngleChart(chart,geometry(chart),[angles[0]?.traces ?? [],angles[1]?.traces ?? []],clips,colors,empty);
+  const pressure=$<HTMLCanvasElement>('squatPressureChart');
+  drawSquatPressure(pressure,geometry(pressure),clips,colors);
   paintSquatCursor();
 }
 
@@ -182,7 +203,7 @@ export function renderSquat() {
   const rows=$('squatRows'); rows.replaceChildren();
   result?.reps.forEach((rep,i)=>{
     const tr=document.createElement('tr'); tr.tabIndex=0; tr.classList.toggle('selected',i===selected);
-    const go=(t:number)=>{focus(i);seekVideoSession(t,true);};
+    const go=(t:number)=>goToRep(i,t);
     tr.onclick=()=>go(rep[0]);
     tr.onkeydown=e=>{if(e.target===tr && (e.key==='Enter'||e.key===' ')) {e.preventDefault();go(rep[0]);}};
     for(const [j,val] of [String(i+1),...rep.map(v=>v.toFixed(3)),(rep[3]-rep[0]).toFixed(3)].entries()) {
@@ -202,6 +223,7 @@ export function renderSquat() {
   $('squatEmpty').textContent=!result ? '暂无预测结果' : result.reps.length ? '' : '该范围未识别到完整深蹲。';
   renderSquatAngles();
   renderSquatMetrics();
+  renderSquatPressure(result?.reps,selected);
   drawSquat();
 }
 
@@ -247,16 +269,20 @@ function renderSquatAngles() {
 export function initSquat() {
   const cv=$<HTMLCanvasElement>('squatTimeline'), chart=$<HTMLCanvasElement>('squatAngleChart');
   if (!cv || !chart) return;
+  const pressure=$<HTMLCanvasElement>('squatPressureChart');
+  initSquatPressure(drawSquat,goToRep);
   initSquatMetrics();
   $('squatVersion').textContent=`分段模型 v${modelVersion} · ${HZ} Hz`;
   $('squatRun').onclick=()=>void run();
   $('squatCancel').onclick=()=>{reset();message='预测已取消。';renderSquat();};
-  const observer=new ResizeObserver(drawSquat); observer.observe(cv); observer.observe(chart);
+  const observer=new ResizeObserver(drawSquat);
+  const plots=[cv,chart,pressure];
+  for (const canvas of plots) observer.observe(canvas);
   const hit=(canvas:HTMLCanvasElement,event:MouseEvent)=>{
     const {l,r,a,b}=geometry(canvas), dx=event.clientX-canvas.getBoundingClientRect().left-canvas.clientLeft;
     return dx>=l && dx<=r ? a+(b-a)*(dx-l)/(r-l) : NaN;
   };
-  for (const canvas of [cv,chart]) {
+  for (const canvas of plots) {
     canvas.onpointermove=e=>{
       const t=hit(canvas,e); hoverTime=Number.isFinite(t) ? t : null; paintSquatCursor();
     };
@@ -265,15 +291,16 @@ export function initSquat() {
   cv.onclick=e=>{
     const t=hit(cv,e); if(!Number.isFinite(t)) return;
     const i=result?.reps.findIndex(r=>r[0]<=t && t<r[3]);
+    pickedTime=t;
     if(i>=0) focus(i);
-    seekVideoSession(t,true);
+    seekVideoSession(t,true);paintSquatCursor();
   };
   cv.onmousemove=e=>{
     const t=hit(cv,e), s=clips.find(c=>c[0]<=t && t<c[1]);
     cv.title=s ? `${t.toFixed(3)} s · ${labels[s[2]] ?? '无法判断'}` : '';
   };
-  chart.onclick=e=>{
-    const t=hit(chart,e); if(!Number.isFinite(t) || !hasAngles()) return;
-    pickedAngleTime=t; seekVideoSession(t,true); paintSquatCursor();
+  for (const [canvas,ready] of [[chart,hasAngles],[pressure,hasSquatPressure]] as const) canvas.onclick=e=>{
+    const t=hit(canvas,e); if(!Number.isFinite(t) || !ready()) return;
+    pickedTime=t; seekVideoSession(t,true); paintSquatCursor();
   };
 }

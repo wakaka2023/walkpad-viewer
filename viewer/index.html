@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>鞋垫数据查看器</title>
-<link rel="stylesheet" href="css/app.css?v=3.50.0">
-<link rel="stylesheet" href="css/axis.css?v=3.50.0">
+<link rel="stylesheet" href="css/app.css?v=3.51.1">
+<link rel="stylesheet" href="css/axis.css?v=3.51.1">
 </head>
 <body data-page="viewer">
 <header>
@@ -296,6 +296,42 @@
       </div>
       <p class="hint" id="squatAngleValues" hidden></p>
       <p class="hint" id="squatAngleHelp">悬停看同一时刻的数值；点击曲线定位视频。每次从下降起点归零，只显示完整深蹲；缺测处断线。曲线是小腿段相对转角，不是关节角，图中的「绕竖直」也不是表里的站姿累计航向。</p>
+      <section class="squat-pressure" aria-labelledby="squatPressureTitle">
+        <div class="squat-angle-head squat-pressure-head">
+          <h2 id="squatPressureTitle">鞋垫相对压力 <small>与深蹲阶段、双踝角度共用时间轴</small></h2>
+        </div>
+        <p id="squatPressureStatus" class="squat-pressure-notice hint" role="status"></p>
+        <div id="squatPressureBody" hidden>
+          <div class="squat-angle-key squat-pressure-key"><span>左脚 · 实线</span><span>右脚 · 虚线</span></div>
+          <div class="canvas-wrap">
+            <canvas id="squatPressureChart" role="img" aria-label="鞋垫相对信号时间曲线" aria-describedby="squatPressureTime squatPressureHelp"></canvas>
+            <div id="squatPressureHoverCursor" class="squat-cursor squat-hover-cursor" aria-hidden="true" hidden></div>
+            <div id="squatPressureVideoCursor" class="squat-cursor squat-video-cursor" aria-hidden="true" hidden></div>
+          </div>
+          <div class="squat-pressure-now"><span id="squatPressureTime"></span><b id="squatPressureRatio"></b></div>
+          <div id="squatPressureFeet" class="squat-pressure-feet"></div>
+          <section class="squat-pressure-reps" aria-labelledby="squatPressureRepTitle">
+            <h3 id="squatPressureRepTitle">逐次鞋垫信号</h3>
+            <p id="squatPressureRepNote" class="hint"></p>
+            <div id="squatPressureRepTable" class="activity-table" hidden>
+              <table aria-labelledby="squatPressureRepTitle" aria-describedby="squatPressureRepNote">
+                <thead><tr><th scope="col">次数</th><th scope="col">时段（s）</th>
+                  <th scope="col">左脚单点峰值</th><th scope="col">右脚单点峰值</th>
+                  <th scope="col">左脚总信号<small>平均 / 峰值</small></th>
+                  <th scope="col">右脚总信号<small>平均 / 峰值</small></th>
+                  <th scope="col">左右信号占比</th></tr></thead>
+                <tbody id="squatPressureRepRows"></tbody>
+              </table>
+            </div>
+          </section>
+          <details class="squat-pressure-help">
+            <summary>读图与计算说明</summary>
+            <p id="squatPressureHelp">相对 COP 使用 D56 v3 测点坐标，按非负 ADC 加权。鞋垫轮廓、轨迹和游标使用同一图纸坐标系。前后坐标从图面足跟端到足尖端递增，横向从左到右递增；坐标不是毫米。预测后只画游标所在次从下降起点到当前时刻的轨迹；在两次动作之间只显示亮点。没有分段时画游标前最多 1 s。轨迹不超出时间窗，不跨缺测连线；总信号为零时不画 COP。</p>
+            <p>每帧的「单点峰值」是该脚 56 点中的最高读数，「单脚总信号」是 56 点读数之和（各点等面积，不额外加权）。以本次打开的数据中双脚的最高单点读数、最高单脚总和分别为 100%。缩放或选中某次不改变参考值。逐次峰值取原始有效帧，平均总信号按有效时长计算，缺帧不补零。</p>
+            <p>左右信号占比只使用同一采集时段内有效配对的双脚信号。逐次占比用两脚总信号在同一批有效时段内的时间积分计算，不是两个峰值的比。无有效配对或合计信号为零时留空。传感器零点和灵敏度的差异会影响比值，不能当作实际承重。</p>
+          </details>
+        </div>
+      </section>
       <h2>逐次事件 <small>点行选中该次并查看下方指标；点时间可跳到对应视频帧</small></h2>
       <div class="activity-table"><table>
         <thead><tr><th scope="col">第几次</th><th scope="col">开始下降（s）</th><th scope="col">进入蹲底（s）</th><th scope="col">开始上升（s）</th><th scope="col">结束上升（s）</th><th scope="col">总时长（s）</th></tr></thead>
@@ -435,7 +471,7 @@
   <p class="vid-note" id="vidSeekStatus" role="status" hidden></p>
 </div>
 
-<script src="dist/app.js?v=3.50.0"></script>
+<script src="dist/app.js?v=3.51.1"></script>
 
 
 </body>
