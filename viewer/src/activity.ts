@@ -36,14 +36,14 @@ let ictoVersion: IctoVersion = 'legacy', runningError = false, gaitNote = '', st
 const usesRefined = (i: number) => ictoVersion === 'running' && !!refinedRunReport?.[i];
 const showDetail = (i: number) => renderGaitDetail(usesRefined(i) ? runningGait?.[i] : gait[i],
   usesRefined(i) ? refinedRunReport[i] : report[i], segments[i], i, usesRefined(i), state.receiptTiming);
-/* 转身段的判据明细：同向累计角与持续时长，达到转圈档就点出来 */
 function turnQuality(s: ActivitySegment) {
   const run = (result?.turnRuns ?? []).find(r => r.a <= s.a + .05 && r.b >= s.b - .05);
   if (!run) return '转身判据命中';
   const angle = Math.abs(run.angle), span = run.b - run.a;
   const feet = run.dir === 0 ? `双脚方向证据不足（${run.left.toFixed(0)}° / ${run.right.toFixed(0)}°）`
     : `双脚同向（${run.left.toFixed(0)}° / ${run.right.toFixed(0)}°）`;
-  return `同向 ${angle.toFixed(0)}° / ${span.toFixed(1)} s · ${feet}${angle >= 300 && span >= 6 ? ' · 已达转圈档' : ''}`;
+  const detail = isAnnotated() ? `转角约 ${angle.toFixed(0)}° · 转向 ${span.toFixed(1)} s` : `同向 ${angle.toFixed(0)}° / ${span.toFixed(1)} s`;
+  return `${detail} · ${feet}${angle >= 300 && span >= 6 ? ' · 已达转圈档' : ''}`;
 }
 function walkReviewReasons(mask = 0) {
   return [mask & WALK_REVIEW.lowSwing ? '摆动偏低' : '', mask & WALK_REVIEW.pause ? '双脚摆动中断' : '',

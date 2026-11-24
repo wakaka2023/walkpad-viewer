@@ -17,7 +17,8 @@ COLLECTION_ID_MODE = 'collection-reid'
 GPU_ID_MODES = (GPU_ID_MODE, COLLECTION_ID_MODE)
 IDENTITY_MODES = ('bytetrack', 'reid', *GPU_ID_MODES)
 LIVE_RULES = 'live'
-DEFAULT_RULES = 'r10'
+DEFAULT_RULES = 'r13'
+LEGACY_RULES = ('r10',)
 ACTION_RULES = (DEFAULT_RULES, LIVE_RULES)
 
 
@@ -30,6 +31,9 @@ def identity_mode():
 
 def action_rules():
     mode = os.environ.get('WALKPAD_VISION_ACTION_RULES', DEFAULT_RULES).strip().lower()
+    # 未刷新的旧页面仍会传 r10，规则目录已不带版本号，按当前规则跑
+    if mode in LEGACY_RULES:
+        mode = DEFAULT_RULES
     if mode not in ACTION_RULES:
         raise ValueError(f'动作规则只支持 {", ".join(ACTION_RULES)}')
     return mode

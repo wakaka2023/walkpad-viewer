@@ -1,5 +1,5 @@
 import model from './squat-v03-model.json';
-import {ankleTimebase, summarizeClock, type AnkleStream} from './squat-clock';
+import {ankleTimebase, elapsedDelta, summarizeClock, type AnkleStream} from './squat-clock';
 
 export const SQUAT_VERSION = model.version;
 export const SQUAT_HZ = 50;
@@ -193,9 +193,11 @@ function decode(out: Float64Array[]) {
   return y;
 }
 
-export function wristOnSquatGrid(wrist: AnkleStream, left: AnkleStream, leftShift: number, offset: number, start: number, n: number) {
-  const [clock]=summarizeClock(wrist,true), [leftClock]=summarizeClock(left,true);
-  const adjusted=(t:number)=>t/1e6+offset+leftShift+(clock-leftClock);
+export function wristOnSquatGrid(wrist: AnkleStream, left: AnkleStream, leftShift: number, offset: number, start: number, n: number, aligned=false) {
+  // 包内已声明会话时间轴时两路本就同轴，只有老包才需要用接收时刻反推腕踝之间的时钟差
+  const rel = aligned ? elapsedDelta(wrist, left)
+    : summarizeClock(wrist,true)[0] - summarizeClock(left,true)[0];
+  const adjusted=(t:number)=>t/1e6+offset+leftShift+rel;
   const w=new Float64Array(n*6).fill(NaN), t=wrist.t;
   for (let i=0,j=1;i<n;i++) {
     const s=start+i/SQUAT_HZ;
@@ -227,8 +229,8 @@ export function deviceAnglesOnSquatGrid(stream: AnkleStream, shift: number, star
 }
 
 export function predictSquats(streams: [AnkleStream,AnkleStream], origin: number, range: {a:number;b:number}|null,
-    onGrid?: (raw: [Float64Array,Float64Array], offset: number) => void): SquatResult {
-  const {shifts,offset}=ankleTimebase(streams,origin);
+    onGrid?: (raw: [Float64Array,Float64Array], offset: number) => void, aligned=false): SquatResult {
+  const {shifts,offset}=ankleTimebase(streams,origin,aligned);
   const parts=streams.map((s,j)=>{
     const t=s.t.map(v=>v/1e6+shifts[j]); let a=0,b=t.length;
     if (range) {while(a<b && t[a]+offset<range.a) a++; while(b>a && t[b-1]+offset>range.b) b--;}

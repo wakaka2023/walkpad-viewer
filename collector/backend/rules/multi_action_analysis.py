@@ -33,11 +33,18 @@ def fragments(indices, times, ends, max_gap, raw_ids=None):
     return np.split(indices, cuts)
 
 
-def camera_for_fragment(camera, lo, hi):
+def camera_for_fragment(camera, lo, hi, *, bracket=False):
     idx = camera['source_indices']
-    keep = (idx >= lo) & (idx < hi)
-    return {key: (data[keep] - lo if key == 'source_indices' else data[keep])
-            for key, data in camera.items() if key in {'source_indices', 'matrices', 'valid'}}
+    start, stop = np.searchsorted(idx, [lo, hi])
+    names = {'source_indices', 'matrices', 'valid'}
+    if bracket and 'time_s' in camera:
+        # Camera transforms describe the background, not another person's
+        # poses. Keep the samples bracketing the fragment's first/last frame.
+        start = max(0, int(np.searchsorted(idx, lo, side='right'))-1)
+        stop = min(len(idx), int(np.searchsorted(idx, hi-1))+1)
+        names.add('time_s')
+    return {key: (data[start:stop] - lo if key == 'source_indices' else data[start:stop])
+            for key, data in camera.items() if key in names}
 
 
 def bind_rows(rows, *, lo, identity, fragment, event_offset=0, segment_offset=0, boundary_offset=0):
@@ -125,6 +132,58 @@ def analyze(data, camera, config, min_seen_s, max_gap_s, *, cropped=None):
         parts = fragments(indices, t, ends, max_gap_s, raw_ids)
         totals = dict(event_offset=0, segment_offset=0, boundary_offset=0)
         raw_segment_offset = 0
+        from .gait_switch import observations, sample_references, profile, apply as refine_gait_switch
+        prepared = {}
+        refs = {'walk': [], 'run': []}
+        for n, part in enumerate(parts, 1):
+            lo, hi = int(part[0]), int(part[-1] + 1)
+            active = np.zeros(hi - lo, bool)
+            active[part - lo] = True
+            if hi - lo < 3:
+                continue
+            pose = np.full((hi - lo, 17, 3), np.nan, np.float32)
+            observed_rows = obs[np.searchsorted(indices, part)]
+            pose[active] = data['keypoints'][observed_rows]
+            f = features.pose_features(dict(time_s=t[lo:hi], keypoints=pose), config)
+            f = features.camera_features(f, camera_for_fragment(camera, lo, hi), config,
+                                         int(data['width']), int(data['height']))
+            rules.period_features(f, config)
+            from .action_temporal import assemble
+            from .gait_evidence import judge
+
+            local_config, calibration = calibrate(f, config)
+            output['action_calibration'].append(dict(calibration, track_id=identity, track_fragment=n))
+            legacy_segments, legacy_frames, _, _, _ = rules.classify_raw(f, config)
+            # Unsupported projected bends are audit evidence, not a priority motion seed.
+            seed_segments, seed_frames, events, _, rejected = rules.classify_raw(
+                f, local_config, arm_semantics=False, bend_semantics=False)
+            audit_bends, bend_rejected = rules.bend_events(f, local_config, return_rejected=True)
+            rejected.extend(bend_rejected)
+            for bend in audit_bends:
+                bend['classification_role'] = 'diagnostic_projection_only_not_a_main_action'
+            events, displaced = adaptive_cycle_recovery(f, events, seed_frames, local_config)
+            assessments, gait_report = judge(f, camera_for_fragment(camera, lo, hi), pose, seed_frames, local_config)
+            rows_with_evidence = [{**row, **evidence} for row, evidence in zip(seed_frames, assessments)]
+            normalize_squat_cycles(f, active, events, rows_with_evidence, local_config)
+            tiered_candidates(f, pose, rows_with_evidence, rejected, local_config, int(data['height']))
+            if cropped and identity in cropped:
+                from .cropped_gait import apply
+                apply(rows_with_evidence,cropped[identity],lo)
+            measured_active = active.copy()
+            if 'cropped_position_inferred' in data:
+                measured_active[active] = ~data['cropped_position_inferred'][observed_rows]
+            from .adaptive_cycle_gait import apply as refine_cycle_gait
+            valid = np.isfinite(pose).all(axis=2) & (pose[:, :, 2] >= local_config['keypoint_conf'])
+            refine_cycle_gait(f['time_s'], pose, valid, rows_with_evidence, measured_active)
+            fragment_camera = camera_for_fragment(camera, lo, hi, bracket=True)
+            shape, step = observations(f['time_s'], pose, valid, rows_with_evidence, measured_active, fragment_camera)
+            anchors = sample_references(f['time_s'], rows_with_evidence, shape, step)
+            for k in refs:
+                refs[k].extend(anchors[k])
+            prepared[n] = (active, observed_rows, pose, f, local_config, legacy_segments, legacy_frames,
+                           seed_segments, events, rejected, displaced, audit_bends, gait_report,
+                           rows_with_evidence, measured_active, valid, fragment_camera, shape, step)
+        profiles = profile(refs)
         previous_stop = int(indices[0])
         for n, part in enumerate(parts, 1):
             lo, hi = int(part[0]), int(part[-1] + 1)
@@ -142,41 +201,28 @@ def analyze(data, camera, config, min_seen_s, max_gap_s, *, cropped=None):
                     output['frame_labels'].append(row)
                     output['raw_frame_labels'].append(row.copy())
                 continue
-            pose = np.full((hi - lo, 17, 3), np.nan, np.float32)
-            observed_rows = obs[np.searchsorted(indices, part)]
-            pose[active] = data['keypoints'][observed_rows]
-            f = features.pose_features(dict(time_s=t[lo:hi], keypoints=pose), config)
-            f = features.camera_features(f, camera_for_fragment(camera, lo, hi), config,
-                                         int(data['width']), int(data['height']))
-            rules.period_features(f, config)
-            from .action_temporal import assemble
-            from .gait_evidence import judge
-
-            local_config, calibration = calibrate(f, config)
-            output['action_calibration'].append(dict(calibration, track_id=identity, track_fragment=n))
-            legacy_segments, legacy_frames, _, _, _ = rules.classify_raw(f, config)
-            seed_segments, seed_frames, events, _, rejected = rules.classify_raw(f, local_config, arm_semantics=False)
-            events, displaced = adaptive_cycle_recovery(f, events, seed_frames, local_config)
-            assessments, gait_report = judge(f, camera_for_fragment(camera, lo, hi), pose, seed_frames, local_config)
-            rows_with_evidence = [{**row, **evidence} for row, evidence in zip(seed_frames, assessments)]
-            normalize_squat_cycles(f, active, events, rows_with_evidence, local_config)
-            tiered_candidates(f, pose, rows_with_evidence, rejected, local_config, int(data['height']))
-            if cropped and identity in cropped:
-                from cropped_gait import apply
-                apply(rows_with_evidence,cropped[identity],lo)
-            measured_active = active.copy()
-            if 'cropped_position_inferred' in data:
-                measured_active[active] = ~data['cropped_position_inferred'][observed_rows]
-            from .adaptive_cycle_gait import apply as refine_cycle_gait
-            valid = np.isfinite(pose).all(axis=2) & (pose[:, :, 2] >= local_config['keypoint_conf'])
-            refine_cycle_gait(f['time_s'], pose, valid, rows_with_evidence, measured_active)
+            (active, observed_rows, pose, f, local_config, legacy_segments, legacy_frames,
+             seed_segments, events, rejected, displaced, audit_bends, gait_report,
+             rows_with_evidence, measured_active, valid, fragment_camera, shape, step) = prepared.pop(n)
+            refine_gait_switch(f['time_s'], rows_with_evidence, shape, step, profiles)
             from .running_turn import apply as refine_running_turn
-            refine_running_turn(f['time_s'], pose, valid, rows_with_evidence, measured_active,
-                                camera_for_fragment(camera, lo, hi))
+            refine_running_turn(f['time_s'], pose, valid, rows_with_evidence, measured_active, fragment_camera)
+            from .bilateral_gait_continuity import apply as refine_bilateral_gait
+            refine_bilateral_gait(f['time_s'], ends[lo:hi], pose, valid, rows_with_evidence, measured_active)
+            from .leg_boundary_evidence import recover_clipped_walk, recover_squat_edges, recover_walk_handoffs
+            recover_clipped_walk(f['time_s'], ends[lo:hi], pose, valid, rows_with_evidence,
+                                 measured_active, fragment_camera, int(data['height']))
+            recover_walk_handoffs(f['time_s'], ends[lo:hi], pose, valid, rows_with_evidence,
+                                  measured_active, fragment_camera)
+            recover_squat_edges(f['time_s'], pose, valid, rows_with_evidence, measured_active, f,
+                                events, fragment_camera)
+            from .standing_turn import apply as refine_standing_turn
+            refine_standing_turn(f['time_s'], pose, valid, rows_with_evidence, measured_active,
+                                 fragment_camera, local_config['pose_smooth_s'])
             for origin, row in zip(legacy_frames, rows_with_evidence):
                 row['activity_zh'] = MULTI_LABELS[row['activity']]
                 row['legacy_raw_activity'] = origin['activity']
-            other = displaced + [row for row in events if row['activity'] != 'squat']
+            other = displaced + audit_bends + [row for row in events if row['activity'] != 'squat']
             output['other_pose_candidates'].extend(bind_rows(other, lo=lo, identity=identity, fragment=n))
             events = [row for row in events if row['activity'] == 'squat']
             mapping = {row['event_id']: j for j, row in enumerate(events, 1)}
@@ -187,7 +233,7 @@ def analyze(data, camera, config, min_seen_s, max_gap_s, *, cropped=None):
             segs, frames, events, boundaries = assemble(f, seed_segments, rows_with_evidence, events, config,
                                                        MULTI_LABELS, merge_walk_labels=True, main_actions=MAIN_ACTIONS, review=review,
                                                        measured=measured_active,
-                      walk_observations=(pose, valid, camera_for_fragment(camera, lo, hi)))
+                      walk_observations=(pose, valid, fragment_camera), image_height=int(data['height']))
             f['raw_segments'], f['raw_frame_labels'] = legacy_segments, legacy_frames
             output['gait_regimes'].extend(dict(row, track_id=identity, track_fragment=n) for row in gait_report)
             for row in segs:

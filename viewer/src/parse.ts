@@ -12,6 +12,7 @@ import {blkOf, clearErr, fail, niceMax} from './core/util';
 import {ictoReset} from './icto/view';
 import {clearOvCache, redrawImu} from './imu';
 import {lodDone, lodFeed, lodInit, useLod} from './lod';
+import {packVideoOffset, packVideoTiming} from './pack-video';
 import {drawScrub, ovFeed, ovInitAll} from './scrub';
 import {redrawWave, updateWinBar} from './timewin';
 import type {PkgFile} from './types';
@@ -327,7 +328,7 @@ const SQUAT_HEAD_COLS = HEADING_COLS;
 const WRIST_RAW_COLS = SQUAT_COLS.map(c=>c==='imuCalibration' ? 'angularVelocityDps' : c);
 type SquatFile = PkgFile & {squat: string[]};
 const squatFiles = new WeakMap<object, [SquatFile[],SquatFile[]]>();
-const squatMeta = new WeakMap<object, {recordId: string|null; wrist?: {files: SquatFile[]; placement: string; family: string}}>();
+const squatMeta = new WeakMap<object, {recordId: string|null; wrist?: {files: SquatFile[]; placement: string; family: string}; aligned?: boolean}>();
 
 export function squatPackage(sides: object) { return squatFiles.get(sides); }
 export function squatCaptureMeta(sides: object) { return squatMeta.get(sides); }
@@ -544,8 +545,9 @@ async function packageVideo(zf, manifest) {
   const declared = (manifest.outputs || []).map(o => o && o.path).filter(p => p && VIDEO_RE.test(p));
   const all = declared.length ? declared : [...zf.keys()].filter(p => VIDEO_RE.test(p));
   if (!all.length) return null;
-  const u8 = await unzipBytes(zf.get(all[0]));
-  return u8 && u8.byteLength ? {u8, name: all[0].split('/').pop(), total: all.length} : null;
+  const [path] = all;
+  const u8 = await unzipBytes(zf.get(path));
+  return u8 && u8.byteLength ? {u8, path, name: path.split('/').pop(), total: all.length} : null;
 }
 
 async function parsePackage(file) {
@@ -648,12 +650,17 @@ async function parsePackage(file) {
     const wrists=jobs.filter(j=>/^(left|right)wrist$/.test(j.placement) && /^(walkpadImu|witWt9011dcl)$/.test(j.family));
     const [w]=wrists;
     squatMeta.set(sides, {recordId:typeof manifest.recordId==='string' && manifest.recordId ? manifest.recordId : null,
+      // 声明了会话时间轴的包，各源的有效时间本就落在同一轴上，对时不再靠 BLE 到达顺序
+      aligned: !!manifest.sessionTimeline,
       wrist:wrists.length===1 ? {files:w.files, placement:w.placement, family:w.family} : undefined});
   }
   const verified = media ? await verifiedVideoOffset(archive) : undefined;
+  const pack = media ? packVideoTiming(manifest, media.path) : null;
   applySides(sides, file.name, 'pressure', {rebuilt: false, src: srcInfo});
   if (media) {
-    try { attachVideo(media.u8, media.name, media.total, verified); } catch { /* 视频挂不上就只没有视频 */ }
+    // 会话原点 = 各源最早的绝对首帧（rebaseCommon 之后全体同一个 t0），包内时刻减去它就是查看器轴上的起点
+    const start = packVideoOffset(pack, sides[0].t0);
+    try { attachVideo(media.u8, media.name, media.total, verified, start, pack?.uncertaintyUs); } catch { /* 视频挂不上就只没有视频 */ }
   }
   // 全段统计放后台跑，不挡住首屏；换文件时代数一变，旧扫描自己退出
   if (state.lazy) {

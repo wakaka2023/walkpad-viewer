@@ -18,3 +18,6 @@ backups/
 records/
 runtime/
 .pytest_cache/
+
+# 离线成片动作标注包（含权重）
+offline/

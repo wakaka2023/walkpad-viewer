@@ -167,8 +167,10 @@ export interface VideoInfo {
   name: string;
   bytes: number;
   offset: number;
-  offsetSource: 'estimate' | 'verified' | 'firstBottom' | 'motion' | 'manual';
+  offsetSource: 'estimate' | 'pack' | 'verified' | 'firstBottom' | 'motion' | 'manual';
   verifiedOffset?: number;
+  /** 包内落地对时给出的不确定度（µs）；其他起点来源为 undefined */
+  packUncertaintyUs?: number;
   /** 视频自身时长，元数据到达前是 NaN */
   dur: number;
   /** 包里一共几段视频（只播第一段，其余不静默假装存在） */

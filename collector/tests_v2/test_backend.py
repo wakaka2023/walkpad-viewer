@@ -260,6 +260,15 @@ def test_video_idempotency(tmp_path):
         recorder.append_video(sid,video_id,4,'video/webm',b'bad')
 
 
+def test_video_container_follows_mime(tmp_path):
+    recorder = Recorder(tmp_path)
+    sid = recorder.start({'source':'test'})
+    mp4_id = 'b'*32
+    assert recorder.append_video(sid,mp4_id,0,'video/mp4;codecs=avc1',b'abc')['next'] == 1
+    recorder.stop()
+    assert (recorder.current/('video_'+mp4_id+'.mp4')).read_bytes() == b'abc'
+
+
 def test_api_tokens_and_websocket_refresh(tmp_path):
     with TestClient(create_app(tmp_path,demo=True)) as client:
         cfg = client.get('/api/config').json()

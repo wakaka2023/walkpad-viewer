@@ -225,6 +225,28 @@ try {
       turnedWalk.map(r => r.slice(0, 2)), 'gait overview seconds', overview);
     await importFile('dual_gap.zip');
   }
+  if (process.env.ACTIVITY4_UTURN_ZIP) {
+    await page.selectOption('#activityModel', '50 Hz 双脚 IMU 四分类');
+    await importFile({name: '50hz-uturn.zip', mimeType: 'application/zip', buffer: fs.readFileSync(process.env.ACTIVITY4_UTURN_ZIP)});
+    await analyze();
+    const base = await activityCsv();
+    await page.selectOption('#activityModel', annotatedOption); await analyze();
+    const tagged = await activityCsv();
+    assert.deepEqual(stateSpans(tagged.rows), stateSpans(base.rows));
+    const turns = [];
+    for (const [a, b, , state, , , , turn, , eligible] of tagged.rows) {
+      if (!turn) continue;
+      if (state === '步行' || state === '跑步') assert.equal(eligible, 'no');
+      const prev = turns.at(-1);
+      if (prev?.[1] === a && prev[2] === turn) prev[1] = b;
+      else turns.push([a, b, turn]);
+    }
+    assert.deepEqual(turns.map(r => r[2]), ['左转', '左转', '左转', '右转', '左转', '左转']);
+    assert.ok(turns.every(([a, b]) => Number(b) - Number(a) < 2), JSON.stringify(turns));
+    assert.deepEqual(turns[4].slice(0, 2).map(Number), [63.6, 65.1]);
+    await importFile('dual_gap.zip');
+    console.log('PASS Activity4 straight-path U-turn replay: unchanged base, six compact turns, gait exclusion');
+  }
   await page.selectOption('#activityModel', '正常走跑提取'); await analyze();
   assert.match(await page.locator('#activityStatus').textContent(), /WT-gait-extraction-v1/);
   assert.equal(await page.locator('#activityTurnLLegend').isVisible(), true);

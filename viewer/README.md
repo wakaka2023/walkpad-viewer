@@ -12,7 +12,7 @@
 - `.parquet` 导出
 - 维特上位机（WT901 / JY901 等）导出的 `.txt` / `.csv`
 
-测量包里带现场视频（`videos/*.mp4`）时，右下角浮出播放器。已核验的包打开即应用已知起点；其他双踝包点「自动校准」，比对视频小腿转动和双踝角速度，不用跳跃或先预测。公司采集网内直接打开本地 `index.html` 即可使用工作站 GPU，无需配置、令牌或本地模型。适用于 5–120 秒且双侧膝踝清楚可见的单段视频；不可达或匹配不唯一时保留原值，也可手填起点或用本地「首次蹲底对时」。IMU 和深蹲专项的游标随视频更新。
+测量包里带现场视频（`videos/*.mp4`）时，右下角浮出播放器。导出端写入了落地对时的包（`manifest.videos[]` 带首帧会话时刻）直接采用该起点，视频与设备刻度同一会话轴，起点可为负——摄像头常比设备先开录；此时不再需要校准。已核验的包打开即应用已知起点；其他双踝包点「自动校准」，比对视频小腿转动和双踝角速度，不用跳跃或先预测。公司采集网内直接打开本地 `index.html` 即可使用工作站 GPU，无需配置、令牌或本地模型。适用于 5–120 秒且双侧膝踝清楚可见的单段视频；不可达或匹配不唯一时保留原值，也可手填起点或用本地「首次蹲底对时」。IMU 和深蹲专项的游标随视频更新。
 
 动作校准使用 Google MediaPipe Tasks Vision 与 Pose Landmarker Lite（[Apache 2.0](vendor/mediapipe-license.txt)，[模型来源](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker)），顺序解码使用 [Mediabunny 1.66.2 源码](https://github.com/Vanilagy/mediabunny/tree/v1.66.2)（[MPL 2.0](vendor/mediabunny-license.txt)）。视频播放、手动对时和深蹲预测在本地运行。仅点「自动校准」时，首段视频和对时所需的双踝数据会加密发给公司采集网内的工作站；工作站不保存数据或结果。
 

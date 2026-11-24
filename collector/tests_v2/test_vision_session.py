@@ -95,5 +95,5 @@ def test_affinity_is_symmetric_and_protocol_is_explicit():
     src = [F1] * 5
     query = [F1, F1, F2, F2, F2]
     assert affinity(src, query) == pytest.approx(affinity(query, src))
-    assert selection(PROTOCOLS[COLLECTION_ID_MODE, 'r10']) == (COLLECTION_ID_MODE, 'r10')
+    assert selection(PROTOCOLS[COLLECTION_ID_MODE, 'r13']) == (COLLECTION_ID_MODE, 'r13')
     assert (COLLECTION_ID_MODE, 'r4') not in PROTOCOLS

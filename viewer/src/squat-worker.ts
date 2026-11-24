@@ -2,22 +2,23 @@ import {deviceAnglesOnSquatGrid, predictSquats, wristOnSquatGrid, type AnkleStre
 import {extractSquatFeatures, type RepFeatures} from './squat-score-features';
 import {squatSideAngles, type SideAngles} from './squat-axis';
 
-type Streams = {inputs: [AnkleStream, AnkleStream]; origin: number};
+type Streams = {inputs: [AnkleStream, AnkleStream]; origin: number; aligned?: boolean};
 export type CalibrationInput = Streams & {firstBottom: true};
 type Input = CalibrationInput | (Streams & {range: {a:number;b:number}|null; wrist?: AnkleStream});
 self.onmessage = ({data}: MessageEvent<Input>) => {
+  const aligned = data.aligned === true;
   try {
     if ('firstBottom' in data) {
-      const [rep] = predictSquats(data.inputs, data.origin, null).reps;
+      const [rep] = predictSquats(data.inputs, data.origin, null, undefined, aligned).reps;
       if (!rep) throw new Error('整段双踝数据没有识别到完整深蹲。');
       self.postMessage({firstBottom: (rep[1]+rep[2])/2});
       return;
     }
     let raw: [Float64Array,Float64Array], offset=0;
-    const result=predictSquats(data.inputs,data.origin,data.range,(grid,mapping)=>{raw=grid;offset=mapping;});
+    const result=predictSquats(data.inputs,data.origin,data.range,(grid,mapping)=>{raw=grid;offset=mapping;},aligned);
     let wristGrid: Float64Array, wristIssue='', features: RepFeatures[], scoreIssue='', repAngles: SideAngles[] = [];
     if (data.wrist && result.reps.length) {
-      try {wristGrid=wristOnSquatGrid(data.wrist,data.inputs[0],result.shifts[0],offset,result.start,result.phase.length);}
+      try {wristGrid=wristOnSquatGrid(data.wrist,data.inputs[0],result.shifts[0],offset,result.start,result.phase.length,aligned);}
       catch(e) {wristIssue='腕部未通过对时质检：'+(e instanceof Error ? e.message : String(e));}
     }
     try {repAngles=data.inputs.map((s,i)=>squatSideAngles({t:s.t,values:s.values,heading:s.heading},result.shifts[i]+offset,result.reps));}

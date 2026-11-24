@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>鞋垫数据查看器</title>
-<link rel="stylesheet" href="css/app.css?v=3.48.0">
-<link rel="stylesheet" href="css/axis.css?v=3.48.0">
+<link rel="stylesheet" href="css/app.css?v=3.50.0">
+<link rel="stylesheet" href="css/axis.css?v=3.50.0">
 </head>
 <body data-page="viewer">
 <header>
@@ -387,7 +387,7 @@
           <p>整段双脚 IMU 重采样至 50 Hz，分段应用 22.5 Hz 单向低通。缺脚、无效数据、超过 80 ms 的帧间隔或序号回退会切开有效区间，不跨缺口推断；段表标出上下文不足的边缘。分段不使用压力或 IC/TO 结果。</p>
           <p><b>Moticon 多域时序模型</b>：基于 HuGaDB 和三套 Moticon 数据训练的双向 TCN，每 0.1 秒给出静止、步行、跑步、其他四类概率，由边界头辅助整段解码。静止是模型输出不是阈值补判；0.1 秒是输出步长，不是边界精度。该模型为试用版，尚未完成 WT 跨人和切换边界验证。<b>B1Q（默认）</b>给出步行、跑步和其他三类，不单列静止。<b>GaitWindow 优化版</b>以 2.4 秒窗口分类，另用双脚低运动判据标静止，并局部复核低证据短段，判据或复核的段不报平均模型概率。</p>
           <p><b>正常走跑提取</b>：TAS 提供候选；步行再用双脚非偏航角速度检查摆动幅度、双脚摆动中断和连续时长。未通过的步行和静止并入「其他」，缺测仍为「无法判断」。非转向的跑步沿用 TAS 候选，不套用步行阈值，也不判断跑姿。步行规则为试用判据，不等于步态诊断。</p>
-          <p><b>左转 / 右转</b>：直接对双脚 IMU 的偏航率做同向累计，不依赖 TAS 标签。累计 ≥90° 且持续 ≥1 秒判转身，达到 300° / 6 秒另标转圈档；两脚证据不足时只报「转身」。转向段不计入提取的步行或跑步，转角是估计值。</p>
+          <p><b>左转 / 右转</b>：用双脚 IMU 的偏航率累计同向转量，不依赖四分类标签。长窗口检出转向并估计转角。「50 Hz 四分类 + 步态复核 + 转向」对明显的集中转身用短窗口定起止，慢转或没有明显主段时保留原区间。两脚方向证据不足时只报「转身」。转向区间不纳入常规步态统计，转角是脚踝 IMU 估计值，不等于路径航向变化。</p>
           <p>这部分整段结果也是 IMU 页「状态底色」的唯一来源：在 IMU 页点「分析整段」跑的是同一次计算，不会重复跑第二遍。输入必须是同一次录制的双脚 IMU 物理量和共同会话时间轴；BLE 通知内帧时间为估计值，不代表硬件同步。</p>
           <p><b>步态指标口径</b>：<span id="gaitRules"></span></p>
         </section>
@@ -435,7 +435,7 @@
   <p class="vid-note" id="vidSeekStatus" role="status" hidden></p>
 </div>
 
-<script src="dist/app.js?v=3.48.0"></script>
+<script src="dist/app.js?v=3.50.0"></script>
 
 
 </body>

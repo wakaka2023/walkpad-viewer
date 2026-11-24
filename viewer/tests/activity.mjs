@@ -176,6 +176,42 @@ const brokenResult = await analyzeGaitExtraction(engine, broken, 4, () => {}, 'e
 assert.equal(brokenResult.turnRuns.length, 0);
 console.log('PASS step extraction: dual-foot swing, stop, minimum duration, independent turns, gaps and straight running');
 
+const turnProbe = async (feet, seconds) => annotateActivity4(engine, feet, seconds, () => {}, 'turn-probe', {
+  labels: new Int8Array(seconds * 10).fill(1), edge: new Uint8Array(seconds * 10)
+});
+const uturn = feetFor(10, () => 220, t => t >= 4 && t < 5.2 ? 150 : 0);
+const fastTurn = await turnProbe(uturn, 10);
+assert.equal(fastTurn.turnRuns.length, 1);
+const fast = fastTurn.turnRuns[0];
+assert.ok(fast.a >= 3.7 && fast.b <= 5.5, JSON.stringify(fast));
+assert.ok(fast.angle >= 165 && fast.angle <= 185, JSON.stringify(fast));
+assert.equal(fastTurn.turns[33], 0);
+assert.equal(fastTurn.turns[46], ACTIVITY_TURN_L);
+assert.equal(fastTurn.turns[58], 0);
+assert.ok(fastTurn.labels.every(v => v === 1));
+const extractionTurn = await analyzeGaitExtraction(engine, uturn, 10, () => {}, 'extraction', {
+  labels: fastTurn.labels, edge: new Uint8Array(100), probs: new Float32Array(500)
+});
+assert.equal(extractionTurn.turnRuns.length, 1);
+const wide = extractionTurn.turnRuns[0];
+assert.ok(wide.a < fast.a && wide.b > fast.b);
+assert.equal(wide.angle, fast.angle);
+assert.equal(wide.dir, fast.dir);
+uturn[1].ok.fill(0, 180, 280);
+assert.equal((await turnProbe(uturn, 10)).turnRuns.length, 0);
+
+const gradual = await turnProbe(feetFor(12, () => 220, t => t >= 3 && t < 9 ? -29 : 0), 12);
+assert.equal(gradual.turnRuns.length, 1);
+assert.equal(gradual.turns[60], ACTIVITY_TURN_R);
+assert.ok(gradual.turnRuns[0].b - gradual.turnRuns[0].a >= 5.5);
+
+const doubleArc = await turnProbe(feetFor(10, () => 220, t => t >= 3 && t < 4 || t >= 4.8 && t < 5.8 ? 125 : 0), 10);
+assert.equal(doubleArc.turnRuns.length, 1);
+assert.ok(doubleArc.turnRuns[0].a < 3 && doubleArc.turnRuns[0].b > 5.8, JSON.stringify(doubleArc.turnRuns));
+const strideYaw = await turnProbe(feetFor(12, () => 250, t => 185 * Math.sin(4 * Math.PI * t)), 12);
+assert.equal(strideYaw.turnRuns.length, 0);
+console.log('PASS turn duration refinement, slow and multi-peak fallback, gap isolation and alternating stride yaw');
+
 const nReview = 160, first = 3, grid = (nReview + first) * 5;
 const gyro = (lag, amplitude = 100, phase = 0) => {
   const v = new Float32Array(6 * grid);

@@ -4,7 +4,7 @@ from itertools import combinations
 
 import numpy as np
 
-from .rules_r10.person_evidence import pose_evidence
+from .rules.person_evidence import pose_evidence
 from .vision_identity import BREAK_GAP, clear
 
 POSE_CONF = .50

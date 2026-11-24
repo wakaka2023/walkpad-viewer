@@ -37,4 +37,31 @@ assert.throws(() => ankleTimebase([stream(3.2), stream(3.6)], 0), /时间轴差�
 // 抖动只发生在单侧也不该被放过
 assert.throws(() => ankleTimebase([stream(3.2, ramp), stream(3.2)], 0), /时间轴波动较大/);
 
+// 包内已声明会话时间轴：接收时间怎么抖都不该影响对时，位移取 0，只保留「同轴」校验
+{
+  const tb = ankleTimebase([stream(3.2, spread), stream(3.21, ramp)], 0, true);
+  assert.deepEqual(tb.shifts, [0, 0], '包内对齐时不做接收位移');
+  assert.ok(Math.abs(tb.offset - 0.25) < 1e-6, '偏移仍取有效时间，实际 ' + tb.offset);
+}
+
+// 包内对齐 + 两路到会话轴的偏移不同（差 100 ms）⇒ 仍然拒绝，不能因为「声明已对齐」就放过
+{
+  const a = stream(3.2), b = stream(3.2);
+  for (let i = 0; i < N; i++) b.elapsed[i] = b.t[i] + 350e3;
+  assert.throws(() => ankleTimebase([a, b], 0, true), /同一条会话时间轴/);
+}
+
+// 包内对齐时也要求采样时间可用：缺 elapsed 仍应报错，而不是静默当成 0
+{
+  const s = stream(3.2);
+  s.elapsed = new Float64Array(N).fill(NaN);
+  assert.throws(() => ankleTimebase([s, stream(3.2)], 0, true), /无法映射到查看器时间轴/);
+}
+
+// 原点参与偏移：包内对齐时 offset 就是「有效时间偏移 − 原点」
+{
+  const tb = ankleTimebase([stream(3.2), stream(3.2)], 2.5e6, true);
+  assert.ok(Math.abs(tb.offset - (0.25 - 2.5)) < 1e-6, '实际 ' + tb.offset);
+}
+
 console.log('ankle-clock: ok');
