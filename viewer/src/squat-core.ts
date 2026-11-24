@@ -1,7 +1,8 @@
-import model from './squat-v03-model.json';
-import {ankleTimebase, elapsedDelta, summarizeClock, type AnkleStream} from './squat-clock';
+import model from './squat-v03-model.json' with {type: 'json'};
+import robust from './squat-v04-model.json' with {type: 'json'};
+import {ankleTimebase, elapsedDelta, summarizeClock, type AnkleStream} from './squat-clock.ts';
 
-export const SQUAT_VERSION = model.version;
+export const SQUAT_VERSION = robust.version;
 export const SQUAT_HZ = 50;
 export type {AnkleStream};
 export type SquatRep = [number, number, number, number];
@@ -124,17 +125,21 @@ function radial(a: Float64Array[], w: Float64Array[]) {
   return [ang.map(v=>v/30),smooth(rw,2).map(v=>v/75),slope.map(v=>v/75),smooth(mag,2).map(v=>v/.15),smooth(tang,2).map(v=>v/.15),smooth(wh,2).map(v=>v/85)];
 }
 
-const params = new Map<string,Float32Array>();
-function tensor(name: string) {
-  let x=params.get(name);
-  if (!x) {
-    const raw=atob((model.params as Record<string,string>)[name]);
-    x=new Float32Array(Uint8Array.from(raw,c=>c.charCodeAt(0)).buffer); params.set(name,x);
-  }
-  return x;
+function weights(source: Record<string,string>) {
+  const params = new Map<string,Float32Array>();
+  return (name: string) => {
+    let x=params.get(name);
+    if (!x) {
+      const raw=atob(source[name]);
+      x=new Float32Array(Uint8Array.from(raw,c=>c.charCodeAt(0)).buffer); params.set(name,x);
+    }
+    return x;
+  };
 }
+const fixedWeights=weights(model.params), robustWeights=weights(robust.params);
 
-function conv(x: Float32Array[], p: string, outs: number, k = 1, dilation = 1, depthwise = false, relu = false) {
+function conv(x: Float32Array[], tensor: ReturnType<typeof weights>, p: string, outs: number,
+    k = 1, dilation = 1, depthwise = false, relu = false) {
   const w=tensor(p+'.weight'), b=tensor(p+'.bias'), n=x[0].length, ins=depthwise ? 1 : x.length;
   return Array.from({length:outs},(_,o)=>{
     const y=new Float32Array(n), off=o*ins*k;
@@ -154,26 +159,73 @@ function conv(x: Float32Array[], p: string, outs: number, k = 1, dilation = 1, d
   });
 }
 
-function emissions(axes: Float64Array[][]) {
-  const f=axes.map(s=>[s.slice(0,3),s.slice(3)] as const);
-  const x=[...f.flatMap(([a,w])=>foot(a,w)),...f.flatMap(([a,w])=>radial(a,w))].map(a=>Float32Array.from(a,v=>clip(v,-12,12)));
+function ensemble(x: Float32Array[], tensor: ReturnType<typeof weights>, count: number) {
   const out=Array.from({length:8},()=>new Float64Array(x[0].length));
-  const swap=[...x.slice(6,12),...x.slice(0,6),...x.slice(18,24),...x.slice(12,18)];
-  for (let k=0;k<3;k++) for (const u of [x,swap]) {
+  for (let k=0;k<count;k++) {
     const p=`nets.${k}.`;
-    let h=conv(conv(u,p+'stem',72,5,1,true),p+'mix',24,1,1,false,true);
+    let h=conv(conv(x,tensor,p+'stem',72,5,1,true),tensor,p+'mix',24,1,1,false,true);
     for (let i=0;i<5;i++) {
       const base=p+`layers.${i}.`;
-      const y=conv(conv(h,base+'0',24,3,1<<i,false,true),base+'2',24);
+      const y=conv(conv(h,tensor,base+'0',24,3,1<<i,false,true),tensor,base+'2',24);
       h=h.map((q,j)=>q.map((v,t)=>v+y[j][t]));
     }
-    const z=[...conv(h,p+'phase',4),...conv(h,p+'edge',4)];
-    out.forEach((q,j)=>{for(let i=0;i<q.length;i++) q[i]+=z[j][i]/6;});
+    const z=[...conv(h,tensor,p+'phase',4),...conv(h,tensor,p+'edge',4)];
+    out.forEach((q,j)=>{for(let i=0;i<q.length;i++) q[i]+=z[j][i]/count;});
   }
   return out;
 }
 
-function decode(out: Float64Array[]) {
+const sigmoid = (x:number) => 1/(1+Math.exp(-x));
+export function referenceWeight(x: Float32Array[]) {
+  const evidence=[0,0,0,0];
+  for (const k of [0,1]) {
+    const main=x[2+6*k], radial=x[12+6*k], n=main.length;
+    const delta=seq(n,i=>main[i]-radial[i]), mismatch=delta.map(Math.abs);
+    let sum=0, weighted=0;
+    for (let i=0;i<n;i++) {
+      const w=Math.exp(-12*radial[i]);
+      sum+=w; weighted+=w*mismatch[i];
+    }
+    const order=sorted(mismatch);
+    const stats=[order[Math.floor((n-1)/2)],order[Math.floor(9*(n-1)/10)],
+      Math.abs(delta.reduce((a,b)=>a+b,0)/n),weighted/sum];
+    for (let i=0;i<4;i++) evidence[i]=Math.max(evidence[i],stats[i]);
+  }
+  return sigmoid(evidence.reduce((z,v,i)=>z+v*robust.gate.coef[i],robust.gate.intercept));
+}
+
+export function squatEmissions(x: Float32Array[]) {
+  const alpha=referenceWeight(x), a=1-alpha;
+  const swap=[...x.slice(6,12),...x.slice(0,6),...x.slice(18,24),...x.slice(12,18)];
+  const out=Array.from({length:8},()=>new Float64Array(x[0].length));
+  // Fuse probabilities for each foot order before averaging decoder scores.
+  for (const u of [x,swap]) {
+    const f=ensemble(u,fixedWeights,3), r=ensemble(u,robustWeights,robust.netCount);
+    for (let t=0;t<x[0].length;t++) {
+      const mf=Math.max(f[0][t],f[1][t],f[2][t],f[3][t]);
+      const mr=Math.max(r[0][t],r[1][t],r[2][t],r[3][t]);
+      let sf=0, sr=0;
+      for (let j=0;j<4;j++) {
+        sf+=(f[j][t]=Math.exp(f[j][t]-mf));
+        sr+=(r[j][t]=Math.exp(r[j][t]-mr));
+      }
+      for (let j=0;j<4;j++) {
+        out[j][t]+=.5*Math.log(Math.max(1e-8,a*f[j][t]/sf+alpha*r[j][t]/sr));
+        const k=j+4, p=clip(a*sigmoid(f[k][t])+alpha*sigmoid(r[k][t]),1e-6,1-1e-6);
+        out[k][t]+=.5*Math.log(p/(1-p));
+      }
+    }
+  }
+  return out;
+}
+
+function emissions(axes: Float64Array[][]) {
+  const f=axes.map(s=>[s.slice(0,3),s.slice(3)] as const);
+  const x=[...f.flatMap(([a,w])=>foot(a,w)),...f.flatMap(([a,w])=>radial(a,w))].map(a=>Float32Array.from(a,v=>clip(v,-12,12)));
+  return squatEmissions(x);
+}
+
+export function decodeSquat(out: Float64Array[]) {
   const n=out[0].length, k=13, back=new Uint8Array(n*k);
   const phases=[0,1,1,1,1,2,2,2,2,3,3,3,3];
   const edge=out.slice(4).map(x=>smooth(x,1).map(v=>model.edgeWeight*clip(v+1,-5,2)));
@@ -261,7 +313,7 @@ export function predictSquats(streams: [AnkleStream,AnkleStream], origin: number
       const axes=raw.map(x=>transpose(x.subarray(i*6,j*6),l,6));
       const mag=new Float64Array(l*2); axes.forEach((x,k)=>{for(let t=0;t<l;t++) mag[k*l+t]=Math.sqrt(x[3][t]**2+x[4][t]**2+x[5][t]**2);});
       if(quantile(mag.sort(),.90)<8) phase.fill(0,i,j);
-      else phase.set(decode(emissions(axes)),i);
+      else phase.set(decodeSquat(emissions(axes)),i);
     }
     i=j;
   }
