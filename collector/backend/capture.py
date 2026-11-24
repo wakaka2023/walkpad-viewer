@@ -607,6 +607,24 @@ class Capture:
         await self.ingress.join()
         return await asyncio.to_thread(self.recorder.stop)
 
+    def _boundary(self,reason):
+        # 暂停/恢复都切断零偏与姿态的连续积分，不能让跨缺口的帧被当成相邻帧
+        for d in self.devices.values():
+            if d['connected']:
+                self.algorithm.offer(dict(control='boundary',foot=d['foot'],bias_key=d['bias_key'],
+                                          clock_ms=time.monotonic()*1000,reason=reason))
+
+    async def record_pause(self):
+        await self.ingress.join()
+        result = await asyncio.to_thread(self.recorder.pause)
+        self._boundary('record_pause')
+        return result
+
+    async def record_resume(self):
+        result = await asyncio.to_thread(self.recorder.resume)
+        self._boundary('record_resume')
+        return result
+
     async def replay(self,session,speed=1.):
         if not .1 <= speed <= 10:
             raise ValueError('回放速度必须0.1到10倍')

@@ -129,7 +129,7 @@ def export_standard(path):
 
 
 # ---------------------------------------------------------------- 测量包
-# Lab v2.5 测量包：manifest.json 的 sources/outputs
+# Lab v2.6 测量包：manifest.json 的 sources/outputs
 # 指向 frames/<设备目录>/frame-00001.parquet，周期与片段写在 timeline/footer.parquet。
 # 列名、struct 六轴、目录命名都按 walkpad_measurement_core 的定义，改名会让 app 侧读包失败。
 
@@ -284,10 +284,11 @@ def _package_source(row, known, used):
                 directory=_lab_directory(family,name,address,used),
                 pressure=kind != 'imu',
                 topology='d56-14x5-56-legacy-v1' if row.get('sensor_topology') == 'v1' else 'd56-14x5-56-side-mirrored-candidate-v3',
-                rows=0,part=0,pending=[],index={},attitude={})
+                rows=0,part=0,pending=[],index={},attitude={},
+                first_receive_ms=None,last_receive_ms=None)
 
 
-def _package_row(r, src, zero, period_id):
+def _package_row(r, src, zero, periods):
     cal = r['device_calendar_ms']
     # 设备日历是唯一可比的采样时间；拿不到就留空，不拿接收时刻顶替
     if cal is not None and zero is not None:
@@ -318,14 +319,20 @@ def _package_row(r, src, zero, period_id):
     index = src['index'].get(segment,0)
     src['index'][segment] = index+1
     src['rows'] += 1
+    period_id, effective = _locate_period(periods,r['receipt_monotonic_ms'])
+    # 公共窗口按接收单调钟取交集；落在暂停空隙的帧不算有效覆盖
+    if period_id is not None:
+        mono = r['receipt_monotonic_ms']
+        src['first_receive_ms'] = mono if src['first_receive_ms'] is None else min(src['first_receive_ms'],mono)
+        src['last_receive_ms'] = mono if src['last_receive_ms'] is None else max(src['last_receive_ms'],mono)
     return dict(sourceId=src['sourceId'],segmentId=segment,index=index,
                 frameType='insole' if src['pressure'] else 'inertial',
                 deviceTimeRaw=_device_stamp(cal),deviceTimeDefinition=TIME_DEFINITION,
                 deviceSequence=None if r['source_frame_number_raw'] is None else int(r['source_frame_number_raw']),
                 timeUs=elapsed,deviceTimeUs=device_us,
                 nativeReceiveNs=int(round(r['receipt_monotonic_ms']*1e6)),connectionEpoch=0,
-                periodId=period_id,effectiveElapsedUs=elapsed,
-                validity='valid' if elapsed is not None else 'unknown',
+                periodId=period_id,effectiveElapsedUs=effective,
+                validity='valid' if elapsed is not None and period_id else ('unknown' if elapsed is None else 'outside_period'),
                 pitchDeg=pitch,sideTiltDeg=side,relativeHeadingDeg=heading,referenceId=reference,
                 pressureAdc=[int(x) for x in pressure] if src['pressure'] else None,
                 accelerationRaw=acc_raw,accelerationG=_tri_of(acc),
@@ -373,8 +380,92 @@ def _sequence_delta(previous, current):
     return 'sequence_gap' if delta < 0x80000000 else 'sequence_backward_or_reset'
 
 
-def _package_segments(path):
-    """第一遍取每台设备的日历零点，第二遍统计片段边界、序号连续性与时间相邻对。"""
+def _export_periods(meta, path):
+    """录制期写下的周期边界；老记录没有周期就退化成整段一个周期，不假装有暂停。"""
+    recorded = [dict(p) for p in (meta.get('periods') or [])
+                if isinstance(p, dict) and p.get('start_monotonic_ms') is not None]
+    if recorded:
+        return recorded
+    low = high = None
+    for batch in batches(path):
+        for value in batch.column('receipt_monotonic_ms').to_pylist():
+            if value is None:
+                continue
+            low = value if low is None else min(low, value)
+            high = value if high is None else max(high, value)
+    if low is None:
+        return []
+    span = int(round(high-low+1))
+    return [dict(period_id='p1', period_no=1, start_monotonic_ms=low, end_monotonic_ms=high+1,
+                 start_session_elapsed_us=0, end_session_elapsed_us=span,
+                 start_effective_elapsed_us=0, end_effective_elapsed_us=span,
+                 end_reason='inferred_single_period')]
+
+
+def _locate_period(periods, receipt_ms):
+    """按接收单调钟定位帧所属周期；落在暂停空隙里的帧不给周期，也不计入有效时间轴。"""
+    if receipt_ms is None:
+        return None, None
+    for period in periods:
+        start = period['start_monotonic_ms']
+        end = period.get('end_monotonic_ms')
+        if receipt_ms < start or (end is not None and receipt_ms >= end):
+            continue
+        offset = int(round((receipt_ms-start)*1000))
+        return period['period_id'], int(period.get('start_effective_elapsed_us') or 0)+offset
+    return None, None
+
+
+def _effective_at_mono(periods, mono_ms):
+    """接收单调钟映射到有效时间轴；落在暂停空隙里的时刻没有有效位置。"""
+    if mono_ms is None:
+        return None
+    for period in periods:
+        start = period['start_monotonic_ms']
+        end = period.get('end_monotonic_ms')
+        if mono_ms < start or (end is not None and mono_ms >= end):
+            continue
+        return int(period.get('start_effective_elapsed_us') or 0)+int(round((mono_ms-start)*1000))
+    return None
+
+
+def _common_window(periods, sources):
+    """各来源有效帧覆盖在主机接收单调钟上的交集。
+
+    接收钟同机同域，可作公共时间轴；它不含蓝牙传输时延修正，所以只声明覆盖重叠，
+    不声明任何硬件同步。
+    """
+    spans = [(s['sourceId'],s['first_receive_ms'],s['last_receive_ms']) for s in sources
+             if s['first_receive_ms'] is not None]
+    low = max(s[1] for s in spans) if spans else None
+    high = min(s[2] for s in spans) if spans else None
+    start_eff = _effective_at_mono(periods,low)
+    end_eff = _effective_at_mono(periods,high)
+    overlap = start_eff is not None and end_eff is not None and start_eff <= end_eff
+    return dict(includedSourceIds=[s[0] for s in spans],
+                startMonoNs=None if not overlap else int(round(low*1e6)),
+                endMonoNs=None if not overlap else int(round(high*1e6)),
+                startEffectiveElapsedUs=start_eff if overlap else None,
+                endEffectiveElapsedUs=end_eff if overlap else None,
+                durationUs=end_eff-start_eff if overlap else None)
+
+
+def _period_at_elapsed(periods, elapsed_us):
+    """段边界落在会话轴上，按起始时刻取所属周期；落在暂停空隙里的段不给周期。"""
+    for period in periods:
+        start = int(period.get('start_session_elapsed_us') or 0)
+        end = period.get('end_session_elapsed_us')
+        if elapsed_us < start or (end is not None and elapsed_us >= end):
+            continue
+        return period['period_id']
+    return None
+
+
+def _package_segments(path, session_zero):
+    """第一遍取每台设备的日历零点，第二遍统计片段边界、序号连续性与时间相邻对。
+
+    片段边界落在会话单调钟上（receipt），设备日历只用于逐设备零点与相邻对。
+    """
     zeros = {}
     for batch in batches(path):
         for r in batch.to_pylist():
@@ -398,12 +489,15 @@ def _package_segments(path):
                 order.append(key)
             cal = r['device_calendar_ms']
             if cal is not None and zeros.get(r['device_id']) is not None:
-                elapsed = int(round(cal*1000)) - zeros[r['device_id']]
-                seg['start'] = elapsed if seg['start'] is None else min(seg['start'],elapsed)
-                seg['end'] = elapsed+1 if seg['end'] is None else max(seg['end'],elapsed+1)
+                device_elapsed = int(round(cal*1000)) - zeros[r['device_id']]
                 if seg['lastTime'] is not None:
                     seg['timeComparisons'] += 1
-                seg['lastTime'] = elapsed
+                seg['lastTime'] = device_elapsed
+            receipt = r['receipt_monotonic_ms']
+            if receipt is not None and session_zero is not None:
+                elapsed = int(round((receipt-session_zero)*1000))
+                seg['start'] = elapsed if seg['start'] is None else min(seg['start'],elapsed)
+                seg['end'] = elapsed+1 if seg['end'] is None else max(seg['end'],elapsed+1)
             seq = r['source_frame_number_raw']
             if seq is not None:
                 previous = seg['previous']
@@ -434,14 +528,13 @@ def export_package(path):
     staging.mkdir()
     meta = json.loads((path/'manifest.json').read_text(encoding='utf-8'))
     known = {(d.get('id') or ''):d for d in meta.get('devices') or []}
+    periods = _export_periods(meta,path)
+    session_zero = meta.get('started_monotonic_ms')
+    if session_zero is None and periods:
+        session_zero = periods[0]['start_monotonic_ms']
     # 每个来源以首帧设备日历为零点：采集端没有手机-设备对时，不能假装有共同基准
-    zeros, segments = _package_segments(path)
+    zeros, segments = _package_segments(path,session_zero)
     sources, outputs, used = {}, [], set()
-    period_id = 'p1'
-    end = 1
-    for seg in segments:
-        if seg['end'] is not None:
-            end = max(end,seg['end'])
     try:
         for batch in batches(path):
             for r in batch.to_pylist():
@@ -450,22 +543,43 @@ def export_package(path):
                 src = sources.get(r['device_id'])
                 if src is None:
                     src = sources[r['device_id']] = _package_source(r,known.get(r['device_id']) or {},used)
-                src['pending'].append(_package_row(r,src,zeros.get(r['device_id']),period_id))
+                src['pending'].append(_package_row(r,src,zeros.get(r['device_id']),periods))
                 if len(src['pending']) >= 20000:
                     _flush_source(staging,src,outputs)
         for src in sources.values():
             _flush_source(staging,src,outputs)
+        anchors = {a.get('file'):a for a in (meta.get('videoAnchors') or []) if a.get('file')}
         videos = []
         for i, video in enumerate(sorted(p for p in path.iterdir() if p.is_file() and p.name.startswith('video_')),1):
             (staging/'videos').mkdir(exist_ok=True)
             rel = 'videos/clip-%03d%s' % (i,video.suffix)
             shutil.copyfile(video,staging/rel)
-            videos.append(dict(path=rel,assetId=video.stem,periodId=period_id))
-            outputs.append(dict(path=rel,assetId=video.stem,periodId=period_id,
-                                bytes=video.stat().st_size,sha256=hashlib.sha256(video.read_bytes()).hexdigest()))
+            digest = hashlib.sha256(video.read_bytes()).hexdigest()
+            anchor = anchors.get(video.name) or {}
+            first = anchor.get('firstMonotonicMs')
+            last = anchor.get('lastMonotonicMs')
+            # 没有逐帧对时表：录像只留下首末块到达的主机时刻，因此不声明已对齐
+            video_period = _locate_period(periods,first)[0] if first is not None else None
+            videos.append(dict(assetId=video.stem,periodId=video_period,segmentId=None,path=rel,
+                               bytes=video.stat().st_size,sha256=digest,
+                               alignmentStatus='unverified',timestampSource='unverified',
+                               alignmentReasonCode='no_video_timing_table',frameTimingPath=None,
+                               firstFrameVideoPtsUs=None,firstFrameCaptureMonoNs=None,
+                               firstFrameEffectiveElapsedUs=None,
+                               lastFrameVideoPtsUs=None,lastFrameCaptureMonoNs=None,
+                               lastFrameEffectiveElapsedUs=None,
+                               frameCount=0,droppedFrameCount=0,uncertaintyUs=None,
+                               firstChunkReceivedMonoNs=None if first is None else int(round(first*1e6)),
+                               lastChunkReceivedMonoNs=None if last is None else int(round(last*1e6))))
+            outputs.append(dict(path=rel,assetId=video.stem,periodId=video_period,
+                                bytes=video.stat().st_size,sha256=digest))
         name_of = {src['device']:src for src in sources.values()}
-        periods = [dict(period_id=period_id,period_no=1,start_session_elapsed_us=0,
-                        end_session_elapsed_us=end,start_effective_elapsed_us=0,end_effective_elapsed_us=end)]
+        period_rows = [dict(period_id=p['period_id'],period_no=p.get('period_no') or i+1,
+                            start_session_elapsed_us=int(p.get('start_session_elapsed_us') or 0),
+                            end_session_elapsed_us=int(p.get('end_session_elapsed_us') or 0),
+                            start_effective_elapsed_us=int(p.get('start_effective_elapsed_us') or 0),
+                            end_effective_elapsed_us=int(p.get('end_effective_elapsed_us') or 0))
+                       for i,p in enumerate(periods)]
         # 每个来源的第一段是录制开始，其余都是重连
         starts, first_seen = {}, set()
         for seg in segments:
@@ -475,7 +589,8 @@ def export_package(path):
                 first_seen.add(seg['sourceId'])
                 starts[seg['segmentId']] = ('record_start','recordStart')
         segment_facts = [dict(segment_id=seg['segmentId'],stream_id=name_of[seg['sourceId']]['sourceId'],
-                              period_id=period_id,start_session_elapsed_us=seg['start'] or 0,
+                              period_id=_period_at_elapsed(periods,seg['start'] or 0),
+                              start_session_elapsed_us=seg['start'] or 0,
                               end_session_elapsed_us=seg['end'] or 0,
                               start_reason_code=starts[seg['segmentId']][0])
                          for seg in segments if seg['sourceId'] in name_of]
@@ -496,7 +611,7 @@ def export_package(path):
                                  estimatedUncertaintyUs=None)))
         footer = staging/'timeline'/'footer.parquet'
         footer.parent.mkdir(parents=True,exist_ok=True)
-        _footer_parquet(footer,{'periods':periods,'segments':segment_facts,'eventOrder':[],
+        _footer_parquet(footer,{'periods':period_rows,'segments':segment_facts,'eventOrder':[],
                                 'mappings':mappings,**({'videos':videos} if videos else {})})
         outputs.append(dict(path='timeline/footer.parquet',bytes=footer.stat().st_size,
                             sha256=hashlib.sha256(footer.read_bytes()).hexdigest()))
@@ -508,6 +623,8 @@ def export_package(path):
             'imuCalibration.gyroBiasDps 是该帧实际采用的三轴零偏（输出坐标 °/s）；biasRevision 在重连、偏置跳变或复位时递增。',
             'imuCalibration.accelerationG 仅透传加速度（g），accelerationCompensated=false；不可用结果为 null。',
             '偏置由采集时的在线静止估计得到，工作台不保存静置原件：initializationId 是偏置会话标识（<sourceId>-bias-<biasRevision>），不对应 calibration/ 原件，manifest.calibrationOriginals 为空；偏置未就绪的帧 status 为 uncalibrated，补偿与偏置列为 null。',
+            'manifest.sessionTimeline 是有效时间轴（排除暂停）；commonAlignedWindow 是各来源有效帧覆盖在主机接收单调钟上的交集，未扣除蓝牙传输时延，只声明覆盖重叠，不构成硬件同步。',
+            '视频没有逐帧对时表：videos[].alignmentStatus 恒为 unverified，只记首末块到达的主机时刻，periodId 指首块到达时所在周期，不能据此把画面帧与采集帧对齐。',
             '',
         ]
         for src in sources.values():
@@ -516,8 +633,9 @@ def export_package(path):
         (staging/'设备目录对照.txt').write_text('\n'.join(guide),encoding='utf-8')
         outputs.append(dict(path='设备目录对照.txt',bytes=(staging/'设备目录对照.txt').stat().st_size,
                             sha256=hashlib.sha256((staging/'设备目录对照.txt').read_bytes()).hexdigest()))
+        common = _common_window(periods,sources.values())
         manifest = dict(
-            schemaVersion='lab_measurement_package.v2.5',recordId=uuid.uuid4().hex.upper()[:26],
+            schemaVersion='lab_measurement_package.v2.6',recordId=uuid.uuid4().hex.upper()[:26],
             title=meta.get('session_id'),inputManifestId=meta.get('session_id'),
             normalizationVersion='lab-normalization.1',
             sources=[dict(sourceId=s['sourceId'],deviceFamily=s['family'],placement=s['placement'],
@@ -529,7 +647,30 @@ def export_package(path):
                           directory=s['directory'],bluetoothName=s['name'],deviceType=s['family'],
                           deviceIdentifier=s['address'] or None,deviceBindingId=None) for s in sources.values()],
             inputs=[],outputs=outputs,physicalSchemas=LAB_V2_COLUMNS,calibrationOriginals=[],
-            includeOriginals=False,includeVideos=bool(videos),units=LAB_UNITS,
+            includeOriginals=False,includeVideos=bool(videos),
+            videos=videos,commonAlignedWindow=common,
+            frameAlignmentMode='video_aligned_window' if any(v['alignmentStatus'] == 'aligned' for v in videos)
+            else 'full_capture',
+            sessionTimeline=dict(
+                clockDomain=meta.get('clock_domain') or 'python.monotonic_ns',
+                sessionStartMonoNs=None if session_zero is None else int(round(session_zero*1e6)),
+                sessionEndMonoNs=None if not periods or periods[-1].get('end_monotonic_ms') is None
+                else int(round(periods[-1]['end_monotonic_ms']*1e6)),
+                sessionStartUtcIso=None if meta.get('started_epoch_ms') is None
+                else datetime.fromtimestamp(meta['started_epoch_ms']/1000,timezone.utc).isoformat(),
+                effectiveTimeRule='exclude_pauses_half_open_periods',
+                effectiveDurationUs=int(period_rows[-1]['end_effective_elapsed_us']) if period_rows else 0,
+                periods=[dict(periodId=p['period_id'],periodNo=p['period_no'],
+                              startMonoNs=None if periods[i].get('start_monotonic_ms') is None
+                              else int(round(periods[i]['start_monotonic_ms']*1e6)),
+                              endMonoNs=None if periods[i].get('end_monotonic_ms') is None
+                              else int(round(periods[i]['end_monotonic_ms']*1e6)),
+                              startSessionElapsedUs=p['start_session_elapsed_us'],
+                              endSessionElapsedUs=p['end_session_elapsed_us'],
+                              startEffectiveElapsedUs=p['start_effective_elapsed_us'],
+                              endEffectiveElapsedUs=p['end_effective_elapsed_us'],
+                              endReason=periods[i].get('end_reason')) for i,p in enumerate(period_rows)]),
+            units=LAB_UNITS,
             frameKey=['sourceId','segmentId','index'],
             recordIndexBasis='header=0; notifyIndex=0 for first notify',
             intervalRule='startInclusive,endExclusive; period and source segment must both contain timeUs',

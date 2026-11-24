@@ -39,6 +39,7 @@ const message = ref('')
 const closed = ref(false)
 const devices = computed(() => status.value?.devices.filter(device => device.source === status.value?.source || device.connected) || [])
 const recording = computed(() => status.value?.recorder.recording)
+const paused = computed(() => !!status.value?.recorder.paused)
 const recordBusy = computed(() => savingRecord.value || !!status.value?.recorder.draining)
 const latestSession = computed(() => savedSession.value || sessions.value.find(session => session.status === 'complete' || session.status === 'failed' || session.interrupted))
 const canExport = computed(() => online.value && !recording.value && !recordBusy.value && !busy.value)
@@ -103,7 +104,7 @@ async function forget(device: Device) {
 }
 async function record() {
   if (busy.value || recordBusy.value || !online.value) return
-  if (!recording.value) {
+  if (!recording.value && !paused.value) {
     if (await run('record_start')) savedSession.value = null
     return
   }
@@ -123,6 +124,10 @@ async function record() {
     savingRecord.value = busy.value = false
     if (cameraError && !error.value) error.value = cameraError
   }
+}
+async function togglePause() {
+  if (busy.value || recordBusy.value || !online.value) return
+  await run(paused.value ? 'record_resume' : 'record_pause')
 }
 async function loadSessions() {
   try {
@@ -177,7 +182,7 @@ onUnmounted(disconnect)
 
 <template>
   <div class="workbench">
-    <header class="app-header"><div class="brand"><div class="brand-mark">W</div><div><h1>Walkpad <span>采集工作台</span></h1><p>传感器实时采集 · 本地持久化 · 在线算法</p></div></div><div class="header-right"><span class="connection"><i :class="{ connected: online }"></i>{{ online ? '后台已连接' : '连接后台中' }}</span><span class="version">v{{ status?.version ?? '—' }}</span><button :class="recording ? 'danger' : 'primary'" :disabled="busy || recordBusy || !online" @click="record">{{ recordBusy ? '正在保存…' : recording ? '停止并保存' : '开始记录' }}</button><button :disabled="busy || recordBusy || !online" title="立即停止记录、断开全部设备并结束后台进程（含算法子进程）；直接关闭页面时后台也会在宽限期后自动退出" @click="shutdownServer">关闭后台</button></div></header>
+    <header class="app-header"><div class="brand"><div class="brand-mark">W</div><div><h1>Walkpad <span>采集工作台</span></h1><p>传感器实时采集 · 本地持久化 · 在线算法</p></div></div><div class="header-right"><span class="connection"><i :class="{ connected: online }"></i>{{ online ? '后台已连接' : '连接后台中' }}</span><span class="version">v{{ status?.version ?? '—' }}</span><span v-if="recording || paused" class="record-state">{{ paused ? '已暂停 · 不计入有效时长' : `有效 ${((status?.recorder.effective_us ?? 0)/1e6).toFixed(1)}s · ${status?.recorder.periods ?? 0} 段` }}</span><button v-if="recording || paused" :disabled="busy || recordBusy || !online" @click="togglePause">{{ paused ? '继续记录' : '暂停' }}</button><button :class="recording || paused ? 'danger' : 'primary'" :disabled="busy || recordBusy || !online" @click="record">{{ recordBusy ? '正在保存…' : recording || paused ? '停止并保存' : '开始记录' }}</button><button :disabled="busy || recordBusy || !online" title="立即停止记录、断开全部设备并结束后台进程（含算法子进程）；直接关闭页面时后台也会在宽限期后自动退出" @click="shutdownServer">关闭后台</button></div></header>
     <div v-if="closed" class="alert warning">后台服务已关闭：记录、蓝牙连接与算法进程都已退出。继续采集请重新运行启动入口。</div>
     <div v-if="error || status?.error || status?.recorder.error" class="alert error" role="alert">{{ error || status?.recorder.error || status?.error }}<button @click="error = ''">关闭提示</button></div>
     <div v-if="status?.source === 'demo'" class="alert warning">当前为模拟数据，仅用于验证软件链路，不是设备实测。</div>

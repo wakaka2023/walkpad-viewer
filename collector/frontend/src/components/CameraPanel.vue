@@ -107,7 +107,7 @@ async function start() {
   if (!stream || recording.value || starting) return
   starting = true
   try {
-    if (!status.value?.recorder.recording) await api('record_start')
+    if (!status.value?.recorder.recording && !status.value?.recorder.paused) await api('record_start')
     const current = await (await fetch('/api/status')).json()
     session = current.recorder.session_id
     // 优先 mp4：离线标注包只认 mp4/mov/mkv 一类容器，webm 需要服务端重封装

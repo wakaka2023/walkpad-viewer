@@ -1,6 +1,6 @@
 {
   "name": "walkpad-insole-viewer",
-  "version": "3.51.1",
+  "version": "3.53.0",
   "private": true,
   "description": "鞋垫数据查看器：本地 zip / parquet / 维特 TXT 的压力与 IMU 波形分析",
   "type": "module",
@@ -9,7 +9,7 @@
     "watch": "vite build --watch",
     "typecheck": "tsc --noEmit",
     "dev": "vite",
-    "test": "node tests/axis-offline.mjs && node tests/heading.mjs && node tests/squat-axis.mjs && node tests/ankle-clock.mjs && node tests/pack-video.mjs && node tests/interaction.mjs && node tests/squat-pressure.mjs",
+    "test": "node tests/axis-offline.mjs && node tests/heading.mjs && node tests/squat-axis.mjs && node tests/ankle-clock.mjs && node tests/pack-video.mjs && node tests/interaction.mjs && node tests/squat-pressure.mjs && node tests/squat-mixer.mjs",
     "test:activity": "node tests/activity.mjs",
     "test:axis": "node tests/axis-offline.mjs",
     "test:heading": "node tests/heading.mjs",

@@ -29,7 +29,7 @@ export interface Device {
 }
 export interface Status {
   version: string; source: string; devices: Device[]; cursor: number; demo_allowed: boolean
-  recorder: { recording: boolean; session_id: string | null; path: string; frames: number; chunks: number; events: number; queued: number; error: string | null; recovered: string[]; draining: boolean }
+  recorder: { recording: boolean; paused: boolean; session_id: string | null; path: string; frames: number; chunks: number; events: number; queued: number; periods: number; effective_us: number; error: string | null; recovered: string[]; draining: boolean }
   algorithm: { enabled: boolean; profile: string; result: Record<string, any>; bias: Record<string, any>; error: string | null; dropped: number; model?: Record<string, any> }
   phone: Record<string, any>; error: string | null; warning: string
   logs: { time: number; text: string; level: string }[]

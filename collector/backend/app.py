@@ -91,7 +91,7 @@ def create_app(root=ROOT,demo=False,phone_port=8766,debug=False,idle_exit=8):
         app.state.idle_task = None
         if app.state.clients:
             return
-        if app.state.capture.recorder.accepting:
+        if app.state.capture.recorder.state_name != 'stopped':
             return
         request_stop(.2)
 
@@ -184,7 +184,7 @@ def create_app(root=ROOT,demo=False,phone_port=8766,debug=False,idle_exit=8):
                 if c.source == 'phone' and body.source != 'phone' and app.state.phone.session:
                     raise ValueError('先停止记录并释放手机会话，再切换来源')
                 if body.source == 'phone':
-                    if c.recorder.accepting:
+                    if c.recorder.state_name != 'stopped':
                         raise ValueError('先停止记录再切换来源')
                     await app.state.phone.enable()
                 return await c.source_change(body.source)
@@ -197,6 +197,10 @@ def create_app(root=ROOT,demo=False,phone_port=8766,debug=False,idle_exit=8):
                 if c.source == 'phone':
                     app.state.phone.paused = True
                 return await c.record_stop()
+            if action == 'record_pause':
+                return await c.record_pause()
+            if action == 'record_resume':
+                return await c.record_resume()
             if action == 'algorithm':
                 if body.profile not in ('wt','insole') or body.enabled is None:
                     raise ValueError('invalid algorithm configuration')
@@ -212,7 +216,7 @@ def create_app(root=ROOT,demo=False,phone_port=8766,debug=False,idle_exit=8):
                     clock = time.monotonic()*1000
                 return await asyncio.wrap_future(c.algorithm.control('bias', bias_key=key, foot=device['foot'], action=body.bias_action, clock_ms=clock))
             if action == 'topology':
-                if body.topology not in ('v1','v2') or c.recorder.accepting:
+                if body.topology not in ('v1','v2') or c.recorder.state_name != 'stopped':
                     raise ValueError('拓扑只能在未记录时切换')
                 c.devices[body.device_id]['topology'] = body.topology
                 return {'ok':True}
@@ -232,7 +236,7 @@ def create_app(root=ROOT,demo=False,phone_port=8766,debug=False,idle_exit=8):
                     d['samples'].clear()
                 return {'ok':True}
             if action == 'shutdown':
-                if c.recorder.accepting:
+                if c.recorder.state_name != 'stopped':
                     await c.record_stop()
                 return request_stop()
             raise ValueError('unknown action')
