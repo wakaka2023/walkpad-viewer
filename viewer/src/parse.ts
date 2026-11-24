@@ -14,6 +14,9 @@ import {clearOvCache, redrawImu} from './imu';
 import {lodDone, lodFeed, lodInit, useLod} from './lod';
 import {packVideoOffset, packVideoTiming} from './pack-video';
 import {drawScrub, ovFeed, ovInitAll} from './scrub';
+import {PRESSURE_COLUMNS, pressureTiming} from './squat-pressure-core';
+import type {PressureSource} from './squat-pressure-core';
+import {D56_LAYOUT} from './squat-pressure-layout';
 import {redrawWave, updateWinBar} from './timewin';
 import type {PkgFile} from './types';
 import {attachVideo, clearVideo, verifiedVideoOffset} from './video';
@@ -330,6 +333,9 @@ type SquatFile = PkgFile & {squat: string[]};
 const squatFiles = new WeakMap<object, [SquatFile[],SquatFile[]]>();
 const squatMeta = new WeakMap<object, {recordId: string|null; wrist?: {files: SquatFile[]; placement: string; family: string}; aligned?: boolean}>();
 
+const squatPressureSources=new WeakMap<object, PressureSource[]>();
+export function squatPressurePackage(sides: object) { return squatPressureSources.get(sides); }
+
 export function squatPackage(sides: object) { return squatFiles.get(sides); }
 export function squatCaptureMeta(sides: object) { return squatMeta.get(sides); }
 
@@ -550,6 +556,17 @@ async function packageVideo(zf, manifest) {
   return u8 && u8.byteLength ? {u8, path, name: path.split('/').pop(), total: all.length} : null;
 }
 
+async function packagePressureMappings(zf): Promise<unknown[]> {
+  try {
+    if(!zf.has('timeline/footer.parquet')) return [];
+    const file=await parquetBuffer(zf,'timeline/footer.parquet');
+    const rows=await ParquetHQ.parquetReadObjects({file,columns:['section','body']});
+    const body=rows.find(r=>r.section==='mappings')?.body;
+    const mappings=typeof body==='string' ? JSON.parse(body) : null;
+    return Array.isArray(mappings) ? mappings : [];
+  } catch { return []; } // A missing/invalid footer affects pairing only, not single-foot pressure.
+}
+
 async function parsePackage(file) {
   if (typeof DecompressionStream !== 'function') {
     fail('这个浏览器不支持页面内解压（DecompressionStream），请改用 Edge / Chrome。');
@@ -597,7 +614,7 @@ async function parsePackage(file) {
       const side = !nch && pressureSides.has(foot) && /^(left|right)ankle$/.test(placement) ? placement : foot;
       registerSideLabel(side, src);
       const axisPressure = src.deviceFamily === 'd56' && nch === NCH && /^(left|right)insole$/.test(placement) &&
-        src.pressureLayoutId === 'd56-14x5-56-side-mirrored-candidate-v3';
+        src.pressureLayoutId === D56_LAYOUT;
       const job = {side, sourceId: src.sourceId, placement, family: src.deviceFamily, nch, axisPressure, files: [], nAll: 0};
       for (const path of paths) {
         const ab = await parquetBuffer(zf, path);
@@ -613,7 +630,9 @@ async function parsePackage(file) {
           const nr = Number(rg.num_rows);
           if (nr > 0) { rgs.push([acc, acc + nr]); acc += nr; }
         }
-        job.files.push({ab, base: job.nAll, rows, rgs, cols: PKG_COLS.filter(c => names.has(c)), squat: [...new Set([...SQUAT_COLS,...WRIST_RAW_COLS,...SQUAT_HEAD_COLS])].filter(c => names.has(c))});
+        job.files.push({ab, base: job.nAll, rows, rgs, cols: PKG_COLS.filter(c => names.has(c)),
+          squat: [...new Set([...SQUAT_COLS,...WRIST_RAW_COLS,...SQUAT_HEAD_COLS])].filter(c => names.has(c)),
+          pressure: axisPressure ? PRESSURE_COLUMNS.filter(c=>names.has(c)) : undefined});
         job.nAll += rows;
       }
       jobs.push(job);
@@ -653,6 +672,15 @@ async function parsePackage(file) {
       // 声明了会话时间轴的包，各源的有效时间本就落在同一轴上，对时不再靠 BLE 到达顺序
       aligned: !!manifest.sessionTimeline,
       wrist:wrists.length===1 ? {files:w.files, placement:w.placement, family:w.family} : undefined});
+  }
+  const adcUnit=manifest.units?.pressureAdc;
+  const insoleJobs=typeof adcUnit!=='string' || /\badc\b/i.test(adcUnit) ? jobs.filter(j=>j.axisPressure) : [];
+  if(insoleJobs.length) {
+    const mappings=await packagePressureMappings(zf);
+    squatPressureSources.set(sides,insoleJobs.map(j=>({
+      foot:j.side,timing:pressureTiming(mappings,j.sourceId),
+      files:j.files.map(f=>({ab:f.ab,rgs:f.rgs,cols:f.pressure})),
+    })));
   }
   const verified = media ? await verifiedVideoOffset(archive) : undefined;
   const pack = media ? packVideoTiming(manifest, media.path) : null;
@@ -898,9 +926,8 @@ async function scanStats(s, gen) {
   let tLo = Infinity, tHi = -Infinity;
   for (const f of s.files) {
     // IMU 列只为全段抽样读：抽帧要有真实帧值，不能拿压力顶替
-    const cols = ['pressureAdc', 'validity', 'temperatureCelsius', 'effectiveElapsedUs']
-      .concat(f.cols.indexOf('frameType') >= 0 ? ['frameType'] : [])
-      .concat(IMU_COLS.filter(c => f.cols.indexOf(c) >= 0));
+    const cols = ['pressureAdc', 'validity', 'effectiveElapsedUs']
+      .concat(['temperatureCelsius','frameType',...IMU_COLS].filter(c=>f.cols.includes(c)));
     for (const [r0, r1] of f.rgs) {
       if (gen !== dataGen) return;
       const part = await ParquetHQ.parquetReadObjects({
