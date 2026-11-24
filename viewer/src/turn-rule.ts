@@ -2,7 +2,8 @@ import type {activityEngine} from './activity-engine';
 import {ACTIVITY_STILL, ACTIVITY_TURN, ACTIVITY_TURN_L, ACTIVITY_TURN_R} from './core/constants.ts';
 
 // 方向以项目左脚的同轴右手系为基准；右脚镜像归一不改变该约定。
-const TURN_RULE = {yawOn: 15, minAngle: 90, minDuration: 1, maxGapS: .3, gravityWinS: 1, yawWinS: 2.5, edgeS: 1};
+const TURN_RULE = {yawOn: 15, minAngle: 90, minDuration: 1, maxGapS: .3, gravityWinS: 1, yawWinS: 2.5,
+  coreWinS: 1, coreYawOn: 40, minCoreShare: .6, edgeS: 1};
 const RATE = 50;
 
 // 窗口在连续有效段边缘截断，不跨缺口。
@@ -19,7 +20,7 @@ function boxMean(input: Float32Array, from: number, to: number, win: number) {
 
 type Sampled = ReturnType<ReturnType<typeof activityEngine>['sample']>;
 
-function projectedGyro({values, group}: Sampled, grid: number, gravity: number, smooth: number, perpendicular = false) {
+function projectedGyro({values, group}: Sampled, grid: number, gravity: number, perpendicular = false) {
   const out = new Float32Array(grid).fill(NaN);
   const acc = [0, 1, 2].map(c => values.subarray(c * grid, (c + 1) * grid));
   const gyr = [3, 4, 5].map(c => values.subarray(c * grid, (c + 1) * grid));
@@ -28,20 +29,51 @@ function projectedGyro({values, group}: Sampled, grid: number, gravity: number, 
     let end = start + 1;
     while (end < grid && group[end] === group[start]) end++;
     const grav = acc.map(a => boxMean(a, start, end, gravity));
-    const raw = new Float32Array(end - start);
+    const raw = out.subarray(start, end);
     for (let i = 0; i < raw.length; i++) {
       const x = grav[0][i], y = grav[1][i], z = grav[2][i], norm = Math.hypot(x, y, z);
       const a = gyr[0][start + i], b = gyr[1][start + i], c = gyr[2][start + i];
       const yaw = norm > 1e-6 ? (a * x + b * y + c * z) / norm : 0;
       raw[i] = perpendicular ? norm > 1e-6 ? Math.max(0, a * a + b * b + c * c - yaw * yaw) : 0 : yaw;
     }
-    out.set(smooth ? boxMean(raw, 0, raw.length, smooth) : raw, start);
     start = end;
   }
   return out;
 }
 
-export type TurnRun = {a: number; b: number; angle: number; source: number; dir: number; left: number; right: number};
+function smoothGyro(raw: Float32Array, group: Int32Array, win: number) {
+  const out = new Float32Array(raw.length).fill(NaN);
+  for (let a = 0; a < raw.length;) {
+    if (group[a] < 0) { a++; continue; }
+    let b = a + 1;
+    while (b < raw.length && group[b] === group[a]) b++;
+    out.set(boxMean(raw, a, b, win), a);
+    a = b;
+  }
+  return out;
+}
+
+export type TurnRun = {a: number; b: number; angle: number; dir: number; left: number; right: number};
+
+// 只有一个短窗主段承载大部分同向转量时才收紧；慢转和多峰转向保留原边界。
+function turnBounds(yaw: Float32Array, from: number, to: number, sign: number, gap: number) {
+  const rule = TURN_RULE;
+  let total = 0, best = 0, a = from, b = to;
+  for (let i = from; i < to; i++) total += Math.max(0, sign * yaw[i]);
+  for (let i = from; i < to;) {
+    if (!(sign * yaw[i] >= rule.coreYawOn)) { i++; continue; }
+    let end = i, dead = 0;
+    for (let j = i + 1; j < to; j++) {
+      if (sign * yaw[j] >= rule.coreYawOn) { end = j; dead = 0; }
+      else if (++dead > gap) break;
+    }
+    let mass = 0;
+    for (let j = i; j <= end; j++) mass += Math.max(0, sign * yaw[j]);
+    if (mass > best) { best = mass; a = i; b = end + 1; }
+    i = end + 1;
+  }
+  return best >= rule.minAngle * RATE && best >= rule.minCoreShare * total ? {a, b} : {a: from, b: to};
+}
 
 const WALK_RULE = {swing: 110, quiet: 40, quietTicks: 4, minTicks: 20};
 export const WALK_REVIEW = {lowSwing: 1, pause: 2, short: 4};
@@ -64,7 +96,7 @@ function rmsWindows(power: Float32Array, group: Int32Array, ticks: number) {
 
 function reviewWalks(labels: Int8Array, feet: readonly [Sampled, Sampled], grid: number, turns?: Int8Array) {
   const ticks = labels.length, reasons = new Uint8Array(ticks);
-  const [l, r] = feet.map(foot => rmsWindows(projectedGyro(foot, grid, 2 * RATE, 0, true), foot.group, ticks));
+  const [l, r] = feet.map(foot => rmsWindows(projectedGyro(foot, grid, 2 * RATE, true), foot.group, ticks));
   for (let t = 0; t < ticks;) {
     if (!(l.quiet[t] < WALK_RULE.quiet && r.quiet[t] < WALK_RULE.quiet)) { t++; continue; }
     let e = t + 1;
@@ -93,12 +125,15 @@ export function screenGait(labels: Int8Array, turns: Int8Array, feet: readonly [
 }
 
 async function gaitEvidence(engine: ReturnType<typeof activityEngine>, sources, duration: number,
-  progress: (p: number) => void, baseEdge: Uint8Array) {
+  progress: (p: number) => void, baseEdge: Uint8Array, refineTurns = false) {
   const rule = TURN_RULE;
   const grid = Math.floor(duration * RATE + 1e-7), ticks = Math.floor(grid / 5);
   const l = engine.sample(sources[0], grid), r = engine.sample(sources[1], grid);
   const gravity = rule.gravityWinS * RATE, yawWindow = rule.yawWinS * RATE;
-  const left = projectedGyro(l, grid, gravity, yawWindow), right = projectedGyro(r, grid, gravity, yawWindow);
+  const rawL = projectedGyro(l, grid, gravity), rawR = projectedGyro(r, grid, gravity);
+  const left = smoothGyro(rawL, l.group, yawWindow), right = smoothGyro(rawR, r.group, yawWindow);
+  const shortL = refineTurns ? smoothGyro(rawL, l.group, rule.coreWinS * RATE) : null;
+  const shortR = refineTurns ? smoothGyro(rawR, r.group, rule.coreWinS * RATE) : null;
   progress(30);
   await new Promise(resolve => setTimeout(resolve, 0));
 
@@ -110,10 +145,10 @@ async function gaitEvidence(engine: ReturnType<typeof activityEngine>, sources, 
     dot += a * b; ll += a * a; rr += b * b; pairs++;
   }
   if (pairs > 100 && dot < -.5 * Math.sqrt(ll * rr)) flip = -1;
-  const yaw = new Float32Array(grid).fill(NaN);
+  const yaw = new Float32Array(grid), coreYaw = shortL && shortR ? new Float32Array(grid) : null;
   for (let k = 0; k < grid; k++) {
-    const a = left[k], b = right[k] * flip;
-    if (Number.isFinite(a) && Number.isFinite(b)) yaw[k] = (a + b) / 2;
+    yaw[k] = (left[k] + right[k] * flip) / 2;
+    if (coreYaw && shortL && shortR) coreYaw[k] = (shortL[k] + shortR[k] * flip) / 2;
   }
 
   // 同向段：低于阈值可容忍 maxGapS；累计只用同号样本，反向摆动不倒扣。
@@ -142,7 +177,8 @@ async function gaitEvidence(engine: ReturnType<typeof activityEngine>, sources, 
     if (Math.abs(angle) >= rule.minAngle && span >= rule.minDuration) {
       // 双脚各自积分：都同向且量级都过半才敢给左右，否则只报「转身」
       const same = (s: number, n: number) => n >= span * RATE * .25 && Math.sign(s) === sign && Math.abs(s) / RATE >= .5 * Math.abs(angle);
-      runs.push({a: k / RATE, b: (end + 1) / RATE, angle, source: span, dir: same(sumL, nL) && same(sumR, nR) ? sign : 0,
+      const {a, b} = coreYaw ? turnBounds(coreYaw, k, end + 1, sign, minGap) : {a: k, b: end + 1};
+      runs.push({a: a / RATE, b: b / RATE, angle, dir: same(sumL, nL) && same(sumR, nR) ? sign : 0,
         left: sumL / RATE, right: sumR / RATE});
     }
     k = end + 1;
@@ -196,7 +232,7 @@ export async function analyzeGaitExtraction(engine: ReturnType<typeof activityEn
 
 export async function annotateActivity4<T extends {labels: Int8Array; edge: Uint8Array}>(engine: ReturnType<typeof activityEngine>, sources,
   duration: number, progress: (p: number) => void, modelId: string, base: T) {
-  const {turns, runs, feet, grid} = await gaitEvidence(engine, sources, duration, progress, base.edge);
+  const {turns, runs, feet, grid} = await gaitEvidence(engine, sources, duration, progress, base.edge, true);
   const walkReview = reviewWalks(base.labels, feet, grid);
   for (let t = 0; t < turns.length; t++) if (base.labels[t] < 0) turns[t] = 0;
   progress(100);

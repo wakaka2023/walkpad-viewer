@@ -42,7 +42,17 @@ def _world_xy(t, pixels, camera, start, end):
         transform = np.vstack((matrix, [0., 0., 1.])) @ transform
         inverse.append(np.linalg.inv(transform))
     coeff = np.asarray(inverse)[:, :2].reshape(-1, 6)
-    aligned = np.stack([np.interp(t[start:end], t[indices[first:last + 1]], x)
+    if 'time_s' in camera:
+        times = np.asarray(camera['time_s'],float)[first:last+1]
+    else:
+        if indices[first]<0 or indices[last]>=len(t):
+            return None
+        times = t[indices[first:last + 1]]
+    if not np.isfinite(times).all() or (np.diff(times)<=0).any():
+        return None
+    if t[start] < times[0]-1e-6 or t[end-1] > times[-1]+1e-6:
+        return None
+    aligned = np.stack([np.interp(t[start:end], times, x)
                         for x in coeff.T], axis=1).reshape(-1, 2, 3)
     return np.einsum('nij,nkj->nki', aligned[:, :, :2], pixels) + aligned[:, None, :, 2]
 

@@ -67,7 +67,7 @@ async function run() {
     worker.onmessage=ev=>finish(ev.data.result,ev.data.error,ev.data.features,ev.data.scoreIssue,ev.data.wristIssue,ev.data.repAngles);
     worker.onerror=ev=>{ev.preventDefault();finish(undefined,ev.message || '后台计算不可用。');};
     const streams=wrist ? [...inputs,wrist] : inputs;
-    worker.postMessage({inputs,wrist,origin:source[0].t0,range},streams.flatMap(s=>[s.t,s.receive,s.elapsed,s.values,...(s.angles ?? [])].map(a=>a.buffer)));
+    worker.postMessage({inputs,wrist,origin:source[0].t0,range,aligned:meta?.aligned===true},streams.flatMap(s=>[s.t,s.receive,s.elapsed,s.values,...(s.angles ?? [])].map(a=>a.buffer)));
   } catch(e) {
     if (!alive()) return;
     reset(); message='预测失败：'+(e instanceof Error ? e.message : e); renderSquat();

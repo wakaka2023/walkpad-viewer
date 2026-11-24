@@ -23,13 +23,14 @@ class WorkstationError(ValueError):
     pass
 
 
-# 已发布的 r5/r6 客户端可继续连接，ready 中回报实际的规则版本。
+# 已发布的 r5/r6/r10 客户端可继续连接，ready 中回报实际的规则版本。
 NEGOTIATED = {name: pair for pair, name in PROTOCOLS.items()}
 NEGOTIATED.update({f'walkpad-vision-{prefix}r5/1': (mode, DEFAULT_RULES)
                    for mode, prefix in (('bytetrack', ''), ('reid', 'reid-'),
                                         ('tracktrack-reid', 'tracktrack-reid-'),
                                         (COLLECTION_ID_MODE, 'collection-reid-'))})
 NEGOTIATED.update({f'walkpad-vision-{mode}-r6/1': (mode, DEFAULT_RULES) for mode in ID_MODELS})
+NEGOTIATED.update({f'walkpad-vision-{mode}-r10/1': (mode, DEFAULT_RULES) for mode in ID_MODELS})
 
 
 def selection(protocol):
@@ -167,7 +168,7 @@ class VisionService:
         selected = selection(protocol)
         if selected is None:
             try:
-                await encode(writer, {'type': 'error', 'message': '工作站仅支持 r10 和实时分相，请更新采集器'})
+                await encode(writer, {'type': 'error', 'message': '工作站仅支持 r13 和实时分相，请更新采集器'})
             finally:
                 await close(writer)
             return

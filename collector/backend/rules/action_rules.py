@@ -266,7 +266,7 @@ def bend_events(f, config, return_rejected=False):
     return (result, rejected) if return_rejected else result
 
 
-def classify_raw(f, config, *, arm_semantics=True):
+def classify_raw(f, config, *, arm_semantics=True, bend_semantics=True):
     t = f['time_s']
     usable = f['torso_visible']
     labels = np.full(len(t), 'unknown', dtype=object)
@@ -300,7 +300,8 @@ def classify_raw(f, config, *, arm_semantics=True):
     bend = usable & (f['local_torso_ratio'] < config['bend_torso_ratio'])
     bend &= (f['foot_speed'] < .4) & (f['knee_flexion'] < 45)
     bend &= f['camera_speed'] <= config['bend_max_camera_speed']
-    masks.append(('bending', bend, 'torso_foreshortening_with_stable_feet;projected_candidate'))
+    if bend_semantics:
+        masks.append(('bending', bend, 'torso_foreshortening_with_stable_feet;projected_candidate'))
     for name, raw, reason in masks:
         minimum = config['fast_min_bout_s'] if name == 'fast_stepping' else config['minimum_bout_s']
         mask = clean_mask(t, raw, usable, minimum, config['close_gap_s'])
@@ -331,11 +332,12 @@ def classify_raw(f, config, *, arm_semantics=True):
     translate &= np.isin(labels, movement_names)
     labels[translate], reasons[translate] = 'walking', 'sustained_net_body_translation_with_visible_steps'
     events, rejected = cycle_events(f, config)
-    bends, bend_rejected = bend_events(f, config, return_rejected=True)
-    rejected.extend(bend_rejected)
-    for candidate in bends:
-        if not any(candidate['start_video_s'] < row['end_video_s'] and candidate['end_video_s'] > row['start_video_s'] for row in events):
-            events.append(candidate)
+    if bend_semantics:
+        bends, bend_rejected = bend_events(f, config, return_rejected=True)
+        rejected.extend(bend_rejected)
+        for candidate in bends:
+            if not any(candidate['start_video_s'] < row['end_video_s'] and candidate['end_video_s'] > row['start_video_s'] for row in events):
+                events.append(candidate)
     events.sort(key=lambda row: row['start_video_s'])
     for number, row in enumerate(events, 1):
         row['event_id'] = number

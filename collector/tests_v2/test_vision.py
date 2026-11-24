@@ -107,11 +107,13 @@ def test_bridge_auth_frames_and_reconnect(monkeypatch):
 
 def test_action_protocols_upgrade_r5_clients_without_running_retired_rules():
     from backend.vision_workstation import ID_MODELS, PROTOCOLS, selection
-    assert set(PROTOCOLS) == {(mode, rule) for mode in ID_MODELS for rule in ('r10', 'live')}
+    assert set(PROTOCOLS) == {(mode, rule) for mode in ID_MODELS for rule in ('r13', 'live')}
     for pair, protocol in PROTOCOLS.items():
         assert selection(protocol) == pair
-    assert selection('walkpad-vision-r5/1') == ('bytetrack', 'r10')
-    assert selection('walkpad-vision-collection-reid-r5/1') == ('collection-reid', 'r10')
+    assert selection('walkpad-vision-r5/1') == ('bytetrack', 'r13')
+    assert selection('walkpad-vision-collection-reid-r5/1') == ('collection-reid', 'r13')
+    assert selection('walkpad-vision-reid-r10/1') == ('reid', 'r13')
+    assert selection('walkpad-vision-tracktrack-reid-r10/1') == ('tracktrack-reid', 'r13')
     assert selection('walkpad-vision-r4/1') is None
     assert selection(None) is None
 
@@ -141,7 +143,7 @@ def test_workstation_tls_client_config(monkeypatch, tmp_path, override):
             data['client_auth'] = False
         config.write_text(json.dumps(data), encoding='utf-8')
     writer = Mock()
-    writer.get_extra_info.return_value.selected_alpn_protocol.return_value = service.PROTOCOLS['collection-reid', 'r10']
+    writer.get_extra_info.return_value.selected_alpn_protocol.return_value = service.PROTOCOLS['collection-reid', 'r13']
     dial = AsyncMock(return_value=(None, writer))
     context = Mock()
     trust = Mock(return_value=context)
@@ -149,7 +151,7 @@ def test_workstation_tls_client_config(monkeypatch, tmp_path, override):
     assert real_context.check_hostname and real_context.verify_mode == ssl.CERT_REQUIRED
     monkeypatch.setattr(service.ssl, 'create_default_context', trust)
     monkeypatch.setattr(service.asyncio, 'open_connection', dial)
-    asyncio.run(service.connect(config, 'collection-reid', 'r10'))
+    asyncio.run(service.connect(config, 'collection-reid', 'r13'))
     trust.assert_called_once_with(cafile=str(tmp_path / 'tls' / 'ca.crt' if custom else service.LAN_CA))
     dial.assert_awaited_once_with(host, port, ssl=context)
     if mutual:
@@ -184,7 +186,7 @@ def test_workstation_rejects_out_of_network_before_gpu(monkeypatch):
     assert not worker.active
 
 
-@pytest.mark.parametrize('model,rules', [('reid', 'r10'), ('tracktrack-reid', 'r10')])
+@pytest.mark.parametrize('model,rules', [('reid', 'r13'), ('tracktrack-reid', 'r13')])
 def test_workstation_bridge_routes_and_reports_disconnect(monkeypatch, model, rules):
     import backend.vision_bridge as bridge_module
 
@@ -225,7 +227,7 @@ def test_workstation_bridge_routes_and_reports_disconnect(monkeypatch, model, ru
             assert '工作站识别连接已断开' in ws.receive_json()['message']
 
 
-@pytest.mark.parametrize('rule', ['r10', 'live'])
+@pytest.mark.parametrize('rule', ['r13', 'live'])
 def test_collection_stop_relays_review_without_turning_it_into_an_action(monkeypatch, rule):
     import backend.vision_bridge as bridge_module
 
@@ -256,3 +258,16 @@ def test_collection_stop_relays_review_without_turning_it_into_an_action(monkeyp
             ws.send_bytes(bytes(4))
             assert ws.receive_json() == {'type': 'review', 'overflow': False,
                                          'tracks': [{'person_id': None, 'suggested_id': 2}]}
+
+
+def test_action_rules_env_accepts_retired_r10_but_rejects_unknown(monkeypatch):
+    from backend.vision_worker import DEFAULT_RULES, action_rules
+    monkeypatch.delenv('WALKPAD_VISION_ACTION_RULES', raising=False)
+    assert action_rules() == DEFAULT_RULES
+    monkeypatch.setenv('WALKPAD_VISION_ACTION_RULES', 'r10')
+    assert action_rules() == DEFAULT_RULES
+    monkeypatch.setenv('WALKPAD_VISION_ACTION_RULES', 'live')
+    assert action_rules() == 'live'
+    monkeypatch.setenv('WALKPAD_VISION_ACTION_RULES', 'r5')
+    with pytest.raises(ValueError):
+        action_rules()

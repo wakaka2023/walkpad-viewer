@@ -1,4 +1,4 @@
-"""v4.9.8-r10 的实时窗口适配。"""
+"""窗口级实时适配：把 rules 包的分析跑在最近一段帧上。"""
 
 import json
 from collections import deque
@@ -6,10 +6,10 @@ from pathlib import Path
 
 import numpy as np
 
-from .rules_r10 import multi_action_analysis as analysis
+from .rules import multi_action_analysis as analysis
 
 
-CONFIG = json.loads((Path(__file__).resolve().parent / 'rules_r10' / 'action_config.json')
+CONFIG = json.loads((Path(__file__).resolve().parent / 'rules' / 'action_config.json')
                     .read_text(encoding='utf-8'))
 WINDOW_S = 12.
 INTERVAL_S = 1.

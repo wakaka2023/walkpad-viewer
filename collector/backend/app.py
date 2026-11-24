@@ -3,20 +3,23 @@ import asyncio
 import json
 import os
 import secrets
+import shutil
 import socket
 import threading
 import time
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 from .capture import Capture
 from .exports import export_package, export_standard, export_txt
+from .offline import OfflineError, OfflineJobs
 from .phone import Phone
 from .version import VERSION
 from .vision_bridge import VisionBridge
@@ -43,6 +46,13 @@ class Command(BaseModel):
     bias_action: str | None = None
     bias_key: str | None = None
     speed: float = 1.
+
+
+class OfflineFromSession(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    session: str
+    video: str
+    preview: bool = True
 
 
 def create_app(root=ROOT,demo=False,phone_port=8766,debug=False,idle_exit=8):
@@ -274,6 +284,131 @@ def create_app(root=ROOT,demo=False,phone_port=8766,debug=False,idle_exit=8):
             raise HTTPException(400,str(exc))
 
     vision = VisionBridge()
+
+    offline = OfflineJobs(root/'runtime'/'offline',root/'records')
+    video_suffixes = ('.mp4','.webm','.mov','.mkv','.avi','.m4v')
+
+    def offline_call(method,*args):
+        try:
+            return method(*args)
+        except OfflineError as exc:
+            raise HTTPException(400 if '任务' in str(exc) or '视频' in str(exc) else 503,str(exc))
+
+    def ranged(path,request):
+        size = path.stat().st_size
+        start, end, status = 0, max(size-1,0), 200
+        header = request.headers.get('range','')
+        if header.startswith('bytes='):
+            first, _, last = header[6:].split(',')[0].partition('-')
+            try:
+                if first:
+                    start = int(first); end = int(last) if last else size-1
+                elif last:
+                    start = max(0,size-int(last))
+            except ValueError:
+                start, end = 0, max(size-1,0)
+            if start >= size or start > end:
+                return Response(status_code=416,headers={'Content-Range':'bytes */%d' % size})
+            status = 206
+        length = end-start+1
+        headers = {'Content-Length':str(length),'Accept-Ranges':'bytes','Content-Type':'video/mp4'}
+        if status == 206:
+            headers['Content-Range'] = 'bytes %d-%d/%d' % (start,end,size)
+        def blocks():
+            with path.open('rb') as source:
+                source.seek(start)
+                left = length
+                while left > 0:
+                    block = source.read(min(262144,left))
+                    if not block:
+                        break
+                    left -= len(block)
+                    yield block
+        return StreamingResponse(blocks(),status_code=status,headers=headers)
+
+    @app.get('/api/offline/config')
+    async def offline_config():
+        return await asyncio.to_thread(offline_call,offline.config)
+
+    @app.get('/api/offline/jobs')
+    async def offline_list():
+        return {'jobs':await asyncio.to_thread(offline.list)}
+
+    @app.post('/api/offline/jobs')
+    async def offline_submit(request:Request):
+        name = os.path.basename(unquote(request.headers.get('x-filename') or 'video.mp4'))
+        inbox = root/'runtime'/'offline'/'_inbox'
+        inbox.mkdir(parents=True,exist_ok=True)
+        temp = inbox/(uuid.uuid4().hex+Path(name).suffix.lower())
+        size = 0
+        try:
+            with temp.open('wb') as target:
+                async for chunk in request.stream():
+                    target.write(chunk)
+                    size += len(chunk)
+                    if size > 2*1024**3:
+                        raise HTTPException(413,'视频超过 2 GB')
+            if not size:
+                raise HTTPException(400,'没有收到视频内容')
+            job = await asyncio.to_thread(offline_call,offline.submit,temp,name,
+                                          request.headers.get('x-preview','1') != '0',
+                                          request.headers.get('x-session') or None)
+        finally:
+            if temp.is_file():
+                temp.unlink()
+        return job
+
+    @app.get('/api/offline/jobs/{job_id}')
+    async def offline_job(job_id:str):
+        return await asyncio.to_thread(offline_call,offline.get,job_id)
+
+    @app.post('/api/offline/jobs/from-session')
+    async def offline_from_session(body:OfflineFromSession):
+        try:
+            path = finished_directory(body.session)
+        except ValueError as exc:
+            raise HTTPException(400,str(exc))
+        source = (path/os.path.basename(body.video)).resolve()
+        if source.parent != path.resolve() or not source.is_file() or source.suffix.lower() not in video_suffixes:
+            raise HTTPException(400,'该记录下没有这个录像')
+        inbox = root/'runtime'/'offline'/'_inbox'
+        inbox.mkdir(parents=True,exist_ok=True)
+        temp = inbox/(uuid.uuid4().hex+source.suffix.lower())
+        shutil.copyfile(source,temp)
+        try:
+            return await asyncio.to_thread(offline_call,offline.submit,temp,body.video,body.preview,body.session)
+        finally:
+            if temp.is_file():
+                temp.unlink()
+
+    @app.get('/api/offline/jobs/{job_id}/result')
+    async def offline_result(job_id:str):
+        return await asyncio.to_thread(offline_call,offline.result,job_id)
+
+    @app.get('/api/offline/jobs/{job_id}/review')
+    async def offline_review(job_id:str,request:Request):
+        path = await asyncio.to_thread(offline_call,offline.review,job_id)
+        return ranged(path,request)
+
+    @app.get('/api/offline/jobs/{job_id}/archive')
+    async def offline_archive(job_id:str):
+        path = await asyncio.to_thread(offline_call,offline.archive,job_id)
+        return FileResponse(path,filename=path.name)
+
+    @app.post('/api/offline/jobs/{job_id}/cancel')
+    async def offline_cancel(job_id:str):
+        return await asyncio.to_thread(offline_call,offline.cancel,job_id)
+
+    @app.get('/api/sessions/{sid}/videos')
+    async def session_videos(sid:str):
+        try:
+            path = finished_directory(sid)
+        except ValueError as exc:
+            raise HTTPException(400,str(exc))
+        videos = [{'name':item.name,'bytes':item.stat().st_size} for item in sorted(path.iterdir())
+                  if item.is_file() and item.suffix.lower() in video_suffixes]
+        return {'session':sid,'videos':videos}
+
 
     @app.websocket('/ws/vision')
     async def vision_websocket(ws: WebSocket):

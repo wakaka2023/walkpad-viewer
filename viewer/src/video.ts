@@ -1,7 +1,7 @@
 import {el} from './core/dom';
 import {state} from './core/state';
 import {paintVideoCursor} from './imu';
-import {squatInput, squatPackage} from './parse';
+import {squatCaptureMeta, squatInput, squatPackage} from './parse';
 import {paintSquatCursor} from './squat';
 import SquatWorker from './squat-worker?worker&inline';
 import {workstationCalibration} from './video-workstation';
@@ -46,15 +46,20 @@ const s2 = (v: number): string => Number.isFinite(v) ? v.toFixed(2) : '—';
 // 会话末端：视频起点推定要拿它当参照，取所有流里最晚的末端
 const sessionDur = (): number => state.sides.length ? Math.max(...state.sides.map(s => s.dur)) : 0;
 
-export function attachVideo(u8: Uint8Array, name: string, total = 1, verifiedOffset?: number): void {
+export function attachVideo(u8: Uint8Array, name: string, total = 1, verifiedOffset?: number,
+    packOffset?: number, packUncertaintyUs?: number): void {
   clearVideo();
   const ext = (name.split('.').pop() || '').toLowerCase();
   // zip 里的字节是整包 buffer 上的视图，Blob 要独占的 ArrayBuffer 才收
   const ab = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength) as ArrayBuffer;
   const blob = new Blob([ab], {type: MIME[ext] || 'video/mp4'});
   const url = URL.createObjectURL(blob);
-  state.video = {url, blob, name, bytes: u8.byteLength, offset: verifiedOffset ?? 0,
-    offsetSource: verifiedOffset == null ? 'estimate' : 'verified', verifiedOffset, dur: NaN, total};
+  // 包内落地对时优先于按文件名硬编码的旧校准表：前者来自这次采集的时钟，后者是补丁
+  const packed = typeof packOffset === 'number' && Number.isFinite(packOffset) ? packOffset : null;
+  state.video = {url, blob, name, bytes: u8.byteLength,
+    offset: packed ?? verifiedOffset ?? 0,
+    offsetSource: packed != null ? 'pack' : verifiedOffset == null ? 'estimate' : 'verified',
+    verifiedOffset, packUncertaintyUs: packed != null ? packUncertaintyUs : undefined, dur: NaN, total};
   if (el.vidToggle) el.vidToggle.hidden = false;
   if (el.vid) el.vid.src = url;
   if (el.vidPanel) el.vidPanel.hidden = false;
@@ -127,6 +132,9 @@ function renderVideo(): void {
   if (document.activeElement !== el.vidOff) el.vidOff.value = vid.offset.toFixed(3);
   el.vidNote.textContent = {
     estimate: '未校准 · 起点仅供定位' + (squatPackage(state.sides) ? '；可按普通深蹲动作自动校准' : ''),
+    pack: '已用包内落地对时' + (Number.isFinite(vid.packUncertaintyUs)
+      ? ` · 视频与设备同一会话轴 ±${Math.max(1, Math.round((vid.packUncertaintyUs ?? 0) / 1000))} ms`
+      : ' · 视频与设备同一会话轴'),
     verified: '已应用此采集包的落地校准',
     firstBottom: '已按首次蹲底手动对时 · 单点估计，未校正漂移',
     motion: '已由工作站 GPU 估计起点 · 非硬件对时',
@@ -225,7 +233,7 @@ async function calibrateFirstBottom(): Promise<void> {
   try {
     const inputs: CalibrationInput['inputs'] = [await squatInput(files[0], alive), await squatInput(files[1], alive)];
     if (!alive()) return;
-    const t = await runFirstBottom({inputs,origin:sides[0].t0,firstBottom:true},signal);
+    const t = await runFirstBottom({inputs,origin:sides[0].t0,firstBottom:true,aligned:squatCaptureMeta(sides)?.aligned===true},signal);
     if (!alive()) return;
     if (!v.paused || v.seeking || v.currentTime !== frame) { moved(); return; }
     el.vidOff.blur();
@@ -328,8 +336,11 @@ export function bindVideo(): void {
     if (Number.isFinite(v)) setOffset(v);
   });
   el.vidAuto.addEventListener('click', () => {
-    const verified = state.video?.verifiedOffset;
-    if (verified != null) setOffset(verified, 'verified');
+    const vid = state.video;
+    if (!vid) return;
+    // 包内起点是硬件时钟算出来的，再跑一次动作匹配只会把它换差
+    if (vid.offsetSource === 'pack') { seekStatus('这份包已带落地对时，无需校准。'); return; }
+    if (vid.verifiedOffset != null) setOffset(vid.verifiedOffset, 'verified');
     else void calibrateMotion();
   });
   el.vidFirstBottom.addEventListener('click', () => void calibrateFirstBottom());

@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from backend.rules_r10.personal_short_run import detect
+from backend.rules.personal_short_run import detect
 
 
 class PersonalShortRunTests(unittest.TestCase):

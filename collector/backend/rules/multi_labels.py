@@ -1,4 +1,6 @@
 LABELS = dict(standing='\u7ad9\u7acb', walking='\u8d70\u8def', running='\u8dd1\u6b65',
+              moving_turn='\u8f6c\u8eab',
+              standing_turn='\u8f6c\u8eab',
               running_turn='\u8dd1\u6b65\u8f6c\u5411\uff08\u8fc7\u6e21\uff09',
               squat='\u6df1\u8e72', stairs_up='\u4e0a\u697c\u68af', stairs_down='\u4e0b\u697c\u68af',
               unknown='\u5176\u4ed6')
@@ -18,6 +20,8 @@ def annotation(primary, guesses, weak):
 
 def review(kind, row, inferred, squat_group, f, i):
     if kind == 'running_turn':
+        if inferred:
+            return dict(annotation='\u8dd1\u6b65\u8f6c\u5411'+CANDIDATE, activity_status='candidate', action_candidates=kind)
         return dict(annotation=LABELS[kind], activity_status='transition', action_candidates='')
     if kind == 'squat' and squat_group:
         return annotation(kind,(),False)

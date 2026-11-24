@@ -3,11 +3,11 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from .rules_r10 import action_features as features
-from .rules_r10 import action_rules as rules
-from .rules_r10.action_calibration import calibrate
-from .rules_r10.gait_evidence import judge
-from .rules_r10.stair_evidence import detect as detect_stairs
+from .rules import action_features as features
+from .rules import action_rules as rules
+from .rules.action_calibration import calibrate
+from .rules.gait_evidence import judge
+from .rules.stair_evidence import detect as detect_stairs
 from .vision_rules_r10 import CONFIG, Camera
 
 WINDOW_S = 6.

@@ -256,16 +256,16 @@ def label_knee_poses(data, args):
 
 def label_poses(data, args):
     if args.boundary_mode == 'body':
-        from view_body_rules import label_view_poses
+        from .view_body_rules import label_view_poses
         events, frames, rejected, chosen = label_view_poses(data, args)
         if args._view_info['view'] == 'front' and getattr(args, 'front_onset_policy', 'raw-descent') == 'raw-descent':
-            from front_onset_rules import refine_front_onsets
+            from .front_onset_rules import refine_front_onsets
             events, frames = refine_front_onsets(data, args, events, frames)
         if args._view_info['view'] == 'front' and getattr(args, 'front_recovery_policy', 'first-standing') == 'first-standing':
-            from front_recovery_rules import refine_front_recoveries
+            from .front_recovery_rules import refine_front_recoveries
             events, frames = refine_front_recoveries(data, args, events, frames)
         if args._view_info['view'] == 'side' and getattr(args, 'side_onset_policy', 'grounded-descent') == 'grounded-descent':
-            from side_onset_rules import refine_side_onsets
+            from .side_onset_rules import refine_side_onsets
             events, frames = refine_side_onsets(data, args, events, frames)
         return events, frames, rejected, chosen
     if args.boundary_mode == 'hip':
@@ -274,7 +274,7 @@ def label_poses(data, args):
     return label_knee_poses(data, args)
 
 def render_preview(video, out, data, frames, intervals, segments):
-    from pipeline_preview import render_preview as render
+    from .pipeline_preview import render_preview as render
     return render(video,out,data,frames,intervals,segments,preset='veryfast')
 
 def parser():

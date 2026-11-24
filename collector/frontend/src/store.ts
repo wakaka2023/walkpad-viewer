@@ -61,9 +61,42 @@ export async function upload(path: string, blob: Blob) {
   if (!response.ok) throw new Error(result.detail || '录像写盘失败')
   return result
 }
+export async function submitOfflineVideo(file: File, preview: boolean) {
+  const response = await fetch('/api/offline/jobs', {
+    method: 'POST',
+    // 头部只能是 ISO-8859-1，中文文件名必须先百分号编码
+    headers: { 'X-Walkpad-Token': token, 'X-Filename': encodeURIComponent(file.name), 'X-Preview': preview ? '1' : '0' },
+    body: file,
+  })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.detail || result.error || '提交失败')
+  return result
+}
+export async function submitOfflineSession(session: string, video: string, preview: boolean) {
+  return postOffline('/api/offline/jobs/from-session', { session, video, preview })
+}
+export async function cancelOffline(job: string) {
+  return postOffline(`/api/offline/jobs/${encodeURIComponent(job)}/cancel`, {})
+}
+async function postOffline<T = any>(path: string, body: Record<string, any>): Promise<T> {
+  const response = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Walkpad-Token': token },
+    body: JSON.stringify(body),
+  })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.detail || result.error || '请求失败')
+  return result
+}
+export async function getOffline<T = any>(path: string): Promise<T> {
+  const response = await fetch(path)
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.detail || result.error || '请求失败')
+  return result
+}
 export type VisionTarget = 'workstation' | 'local'
 export type IdModel = 'bytetrack' | 'reid' | 'tracktrack-reid' | 'collection-reid'
-export type ActionRules = 'r10' | 'live'
+export type ActionRules = 'r13' | 'live'
 
 export function openVisionSocket(target: VisionTarget, idModel: IdModel, actionRules: ActionRules) {
   if (!token) throw new Error('工作台未连接')

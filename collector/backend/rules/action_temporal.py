@@ -3,7 +3,7 @@ import numpy as np
 from .activity_rules import runs
 
 
-MOTION = {'walking', 'gait_walk', 'running', 'running_turn', 'stepping', 'body_motion', 'stairs_up', 'stairs_down'}
+MOTION = {'standing_turn', 'walking', 'gait_walk', 'running', 'running_turn', 'stepping', 'body_motion', 'stairs_up', 'stairs_down'}
 REPETITIONS = {'squat', 'split_squat', 'bending'}
 
 
@@ -17,7 +17,7 @@ def stabilize(t, raw_labels, usable, events, config, *, preserve_walk=False):
     labels[labels == 'fast_stepping'] = 'stepping'
     direct_motion = {'gait_walk','running','running_turn','stairs_up','stairs_down'}
     if preserve_walk:
-        direct_motion.add('walking')
+        direct_motion.update(('walking', 'standing_turn'))
     inferred = np.zeros(len(t), bool)
     protected = np.zeros(len(t), bool)
     ends = np.r_[t[1:], t[-1] + np.median(np.diff(t))]
@@ -75,12 +75,13 @@ def stabilize(t, raw_labels, usable, events, config, *, preserve_walk=False):
     return labels, inferred, protected
 
 
-def assemble(f, raw_segments, raw_frames, events, config, activity_labels, *, merge_walk_labels=False, main_actions=None, review=None, measured=None, walk_observations=None):
+def assemble(f, raw_segments, raw_frames, events, config, activity_labels, *, merge_walk_labels=False, main_actions=None, review=None, measured=None, walk_observations=None, image_height=None):
     t = np.asarray(f['time_s'])
     raw = np.array([row['activity'] for row in raw_frames], dtype=object)
     labels, inferred, protected = stabilize(t, raw, f['torso_visible'], events, config, preserve_walk=review is not None)
     for i, row in enumerate(raw_frames):
-        inferred[i] |= bool(row.get('gait_inferred', False) and labels[i] == row['activity'])
+        own_inference = row.get('gait_inferred', False) or row.get('boundary_inferred', False)
+        inferred[i] |= bool(own_inference and labels[i] == row['activity'])
     if merge_walk_labels:
         labels[labels == 'gait_walk'] = 'walking'
     if main_actions is not None:
@@ -109,6 +110,53 @@ def assemble(f, raw_segments, raw_frames, events, config, activity_labels, *, me
             inferred[a:b] = True
             for i in range(a,b):
                 reviews[i] = review(str(labels[i]), raw_frames[i], True, False, f, i)
+        if walk_observations is not None:
+            from .gait_gap_evidence import REASON, bridges
+            supported = bridges(t, ends, labels, raw_frames, inferred, protected, reviews, measured,
+                                 *walk_observations)
+            for i in np.flatnonzero(supported != ''):
+                labels[i] = supported[i]
+                inferred[i] = True
+                context_bridge[i] = REASON
+                reviews[i] = review(str(labels[i]), raw_frames[i], True, False, f, i)
+        if walk_observations is not None and image_height is not None:
+            from .cropped_passage import bridges
+            supported, why = bridges(t, ends, labels, raw_frames, inferred, protected, reviews, measured,
+                                     *walk_observations, image_height)
+            for i in np.flatnonzero(supported != ''):
+                labels[i] = supported[i]
+                inferred[i] = True
+                context_bridge[i] = why[i]
+                reviews[i] = review(str(labels[i]), raw_frames[i], True, False, f, i)
+            # A tiny inherited walk candidate between a measured run and a
+            # matching newly observed run cycle is not a new walk bout.
+            from .walk_continuity import _step
+            for a,b in label_runs(labels):
+                if (a==0 or b==len(t) or labels[a]!='walking' or labels[a-1]!=labels[b] or labels[b]!='running'
+                        or not measured[a:b].all() or protected[a:b].any() or not inferred[a:b].all()
+                        or not (why[a-1] or why[b]) or (why[a-1] and why[b])):
+                    continue
+                direction=1 if why[a-1] else -1
+                j=b if direction==1 else a-1
+                nearby=[]
+                while 0<=j<len(t) and labels[j]=='running' and not inferred[j]:
+                    step=_step(raw_frames[j])
+                    if np.isfinite(step):
+                        if abs(t[j]-(t[b] if direction==1 else t[a-1]))<=step/2:
+                            nearby.append(step)
+                        break
+                    j+=direction
+                if not nearby or ends[b-1]-t[a]>nearby[0]/2:
+                    continue
+                if any(row.get('action_event_id') or row.get('stair_sequence_supported') or
+                       row.get('gait_evidence') not in ('visible_steps_next_to_confirmed_same_track_walking',
+                                                       'gait_type_unresolved', 'moving_partial_gait_unresolved', '')
+                       for row in raw_frames[a:b]):
+                    continue
+                labels[a:b]='running'
+                context_bridge[a:b]='brief_inferred_walk_with_observed_running_on_both_sides'
+                for i in range(a,b):
+                    reviews[i]=review('running',raw_frames[i],True,False,f,i)
     signatures = np.array([f"{k}:{r['annotation']}" for k,r in zip(labels,reviews)],object) if review else labels
     for a, b in label_runs(signatures):
         kind = str(labels[a])
