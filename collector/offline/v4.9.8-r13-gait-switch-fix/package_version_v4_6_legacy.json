@@ -1,0 +1,9 @@
+{
+  "edition": "4.6",
+  "base_edition": "4.5",
+  "date": "2026-11-18",
+  "activity_mode": "automatic_visual_rule_candidates",
+  "legacy_squat_grading_modified": false,
+  "model_weights_changed": false,
+  "independent_accuracy_measured": false
+}

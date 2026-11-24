@@ -1,0 +1,6 @@
+{
+  "edition": "4.4",
+  "runtime_python_files": 24,
+  "cache_and_scratch_files_excluded": true,
+  "previous_packages_preserved": true
+}

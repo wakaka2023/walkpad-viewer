@@ -1,0 +1,8 @@
+{
+  "edition": "4.4",
+  "date": "2026-11-17",
+  "grading": "observable-video-foot-v4.4",
+  "segmentation": "4.2.0",
+  "indirect_features": "phase_matched_indirect_cues_v1",
+  "detector_parameters_byte_identical_to_v4_2": true
+}

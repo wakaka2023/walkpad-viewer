@@ -1,0 +1,11 @@
+{
+  "P48SQ2": {
+    "layout": "front-side",
+    "split_ratio": 0.5
+  },
+  "replace_with_right_front_video": {
+    "layout": "side-front",
+    "split_ratio": 0.5
+  },
+  "replace_with_single_camera_video": "single"
+}

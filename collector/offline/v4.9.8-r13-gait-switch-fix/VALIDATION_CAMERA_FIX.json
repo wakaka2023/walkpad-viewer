@@ -1,0 +1,26 @@
+{
+  "base": "v4.9.8-r13",
+  "changes": [
+    {
+      "end_s": 49.56666666666667,
+      "frames": 13,
+      "new": [
+        "running",
+        "跑步候选",
+        "candidate"
+      ],
+      "old": [
+        "unknown",
+        "其他",
+        "other"
+      ],
+      "reason": "cropped_edge_with_same_heading_and_measured_depth_progression",
+      "start_s": 49.13333333333333,
+      "track_id": 1
+    }
+  ],
+  "isolated_frame_rows": {
+    "1": 2062,
+    "2": 268
+  }
+}

@@ -1,0 +1,625 @@
+{
+  "version": "v4.9.8-r13-gait-switch-fix",
+  "source_archive": {
+    "name": "v4.9.8-r13-gait-switch-fix_代码权重参数及判别规则.zip",
+    "size_bytes": 22947697,
+    "sha256": "f4b3cc110c3cca6e9363612134d675dbedbb1011c544b6a5ab6e292cb63081d5"
+  },
+  "files": {
+    "ACTION_RULES.md": {
+      "size_bytes": 11410,
+      "sha256": "4b6cf1ec2eeaf68951f238f231e93e9ae0cbbc1de52b57fb2e2287cbece468db"
+    },
+    "ACTION_RULES_v4_6_legacy.md": {
+      "size_bytes": 3631,
+      "sha256": "060fb78b703d16e7be2233bb18335326ef1f75b3b73dd5e98fe0b471d0fd5f57"
+    },
+    "ACTION_RULES_v4_7.md": {
+      "size_bytes": 4915,
+      "sha256": "08c04576816cf386997d5a37a81e698ab10a5cbd90b510af99079a6959f7d581"
+    },
+    "FLAT_DEPICTION_R7.md": {
+      "size_bytes": 1717,
+      "sha256": "876afe73afee774bcec60f340487d8261cf9d6ddb4f83723312746377053e644"
+    },
+    "GAIT_R8.md": {
+      "size_bytes": 2139,
+      "sha256": "3783e2ee7c9eecc1dbc7b0a36a0d1ec4cbf47b07001dc5f7d6aebfa3e178e6b1"
+    },
+    "GAIT_R9.md": {
+      "size_bytes": 2252,
+      "sha256": "0e4da132493cfde32cdbef0bff87be8d43dc3c3f870c74b3c62229e41779cd64"
+    },
+    "PERFORMANCE.md": {
+      "size_bytes": 2991,
+      "sha256": "e727e6355b06eec21120f026e23f247140af9ccfc7196ada055b96971fd61b65"
+    },
+    "PERSONAL_SHORT_RUN_R6.md": {
+      "size_bytes": 2272,
+      "sha256": "c43b894337d919e86138f1a40d36c4d1ed632b8f6bd9734ae19c5def6ba228cc"
+    },
+    "README.md": {
+      "size_bytes": 4862,
+      "sha256": "a5ea75f5b608e58f5ea3f8b903d0dfce820ff7cdbd96372e6e321956d6d07e24",
+      "repository_path": "README.original.md"
+    },
+    "README_v4_4_legacy.md": {
+      "size_bytes": 9859,
+      "sha256": "e94425fe97f577c86f3e741a236d5410d61d18ecf4131ac6c285464e241ad30c"
+    },
+    "README_v4_5_legacy.md": {
+      "size_bytes": 5913,
+      "sha256": "cb8c1f504d885f39a322780eafe57f164b1721a53adf27bf4f6bcb6632ba836d"
+    },
+    "README_v4_6_legacy.md": {
+      "size_bytes": 4784,
+      "sha256": "a89628c526b6a3e4ceb9980a32aabc5f46849ce0a129f5000ba4e47db48c9bde"
+    },
+    "README_v4_7.md": {
+      "size_bytes": 4609,
+      "sha256": "4ca62de33fccd0181f2cf1d5a0d625a2fef56fb38fb1e6b37a765c8b30b2c6e9"
+    },
+    "RECOGNITION_R2.md": {
+      "size_bytes": 3315,
+      "sha256": "8ff4c4c11f00a36223221bcf071ec3360a4f9aefde2c1d06e86ccc7adc655a61"
+    },
+    "RULES_CAMERA_FIX.md": {
+      "size_bytes": 1096,
+      "sha256": "29ca778d1745a4a5610307ae92400f82dd0648ca201b6114c70a8f330694d03d"
+    },
+    "RULES_GAIT_SWITCH_FIX.md": {
+      "size_bytes": 1524,
+      "sha256": "6a3ff759f666c9f8f9ec43dee163e4d583b6914697fb5c85a0f200a57cf3df8e"
+    },
+    "RULES_R10.md": {
+      "size_bytes": 3220,
+      "sha256": "a2c542b8f87f17230deb549d1699fa60915f8649a8a9845d07e3e9c17788f9bb"
+    },
+    "RULES_R11.md": {
+      "size_bytes": 1851,
+      "sha256": "27db4edc7439de0dae3eca83854d037cd204f28ecc17d7626541854a629e9754"
+    },
+    "RULES_R12.md": {
+      "size_bytes": 1996,
+      "sha256": "4cd8f1731930e73d66c3973b61976c1a97477073f8138859e71cd776abbcf0d7"
+    },
+    "RULES_R13.md": {
+      "size_bytes": 1869,
+      "sha256": "d89e003994cac444f63acc3022c67706004a77552b7bcc506b5701f1264950fc"
+    },
+    "RULES_TURN_FIX.md": {
+      "size_bytes": 1874,
+      "sha256": "33008571ea64e29909235fb85e3753391ddd121b859979cfcda68beb8851c814"
+    },
+    "SCORING_RULES.md": {
+      "size_bytes": 5103,
+      "sha256": "4ea0785196ffcd84efeca6bf27dbc4d28e098a46399704605e30a74384462d14"
+    },
+    "SCORING_RULES_v4_4_legacy.md": {
+      "size_bytes": 7311,
+      "sha256": "317a8aee3b5ef8498bd165f868f576d024cdf7fe35571f2c7ac5262b071e0598"
+    },
+    "VALIDATION.md": {
+      "size_bytes": 1541,
+      "sha256": "aec3014bcd9064ed660db61e4679e70712bd47da6ebf14270eb1a72a3d6efae4"
+    },
+    "VALIDATION_CAMERA_FIX.json": {
+      "size_bytes": 474,
+      "sha256": "d4b49e8d60899ec82ef45d0bb8c33711163d1782af8ed7ccdb6a41dbd68d02b6"
+    },
+    "VALIDATION_R2.md": {
+      "size_bytes": 966,
+      "sha256": "4a7c866d8344ce06c188ab6928c025cd046dc74e36c4959679af71f8c877d0f2"
+    },
+    "VALIDATION_R4.md": {
+      "size_bytes": 1511,
+      "sha256": "c240036eb33c54d1f356b9a1ffd090514bfc3e0492ecaf8ee6acb7a41db5879a"
+    },
+    "VALIDATION_R5.md": {
+      "size_bytes": 1796,
+      "sha256": "601cff21db40ebc88a838e85f293f8a7388df6b1222adb49512c312ba303077e"
+    },
+    "VALIDATION_R5_RESULTS.json": {
+      "size_bytes": 5409,
+      "sha256": "25d175355720e421ed739d8bd035ad4839bf26ab473088f5bb05eb302618ebe9"
+    },
+    "VALIDATION_R6.md": {
+      "size_bytes": 1739,
+      "sha256": "9dfb436f9f7d632f63940704774d67d9cbe228509badd21dcac12c41fc8aaaae"
+    },
+    "VALIDATION_R6_RESULTS.json": {
+      "size_bytes": 6611,
+      "sha256": "4cb65e69f49014c9007faf7fc7a256b643578e81b658c6b7490568db8f0aec54"
+    },
+    "VALIDATION_R7.md": {
+      "size_bytes": 1150,
+      "sha256": "19cde9cfaf379b6c2676fd8627b4a83ed6ffa2f875f5ad351e59e8a0088d8973"
+    },
+    "VALIDATION_R7_RESULTS.json": {
+      "size_bytes": 3298,
+      "sha256": "995be5fba06796f561ca02b66e2f09a7e4eb7842ab537bdfe73c6486f9957aea"
+    },
+    "VALIDATION_TURN_FIX.json": {
+      "size_bytes": 12854,
+      "sha256": "d61f70868893b2ebaac9d4b78576c921489e2afaa0bd128f5cfb1cda55123194"
+    },
+    "action_calibration.py": {
+      "size_bytes": 2620,
+      "sha256": "7f3069734d8fe9fd88a9fbde441846636de65e60a5791a5f0a9ce9a80a57b861"
+    },
+    "action_config.json": {
+      "size_bytes": 1797,
+      "sha256": "ff49d2c442c18f0ad462e9d9a74ccf9826c5df386df34c4c9427f9f1f12ce59a"
+    },
+    "action_features.py": {
+      "size_bytes": 17071,
+      "sha256": "c9e200ca0419f49a64e871d9f19d3b2f883a34cb4d6726184ce69d11a2575443"
+    },
+    "action_pipeline.py": {
+      "size_bytes": 11515,
+      "sha256": "a330c45a1659e7b47f08c56eb1f0a4c9cc09f9d1d371ab7bd011e19095bece00"
+    },
+    "action_preview.py": {
+      "size_bytes": 9368,
+      "sha256": "f0e2dacf4a455be1112ee69958a05c72b03aa786fb0ec8ffd009cea857dc214b"
+    },
+    "action_rules.py": {
+      "size_bytes": 25240,
+      "sha256": "fc568b5d8c7152c5b20ebc2093bffb4a51cb7547097254c13f55a853aa4518d0"
+    },
+    "action_temporal.py": {
+      "size_bytes": 13867,
+      "sha256": "d977b10df31c9597f044393b8048550f2a66e710433b66306febe161f228d714"
+    },
+    "activity_rules.py": {
+      "size_bytes": 15612,
+      "sha256": "d20b69805643d9576f8550ef355a8eea11dee0fa314011554b6af79290c821b3"
+    },
+    "adaptive_cycle_gait.py": {
+      "size_bytes": 15313,
+      "sha256": "f584f051e141aa46df5305f9bdbb02a34513a5f886a8714722e162393d05a9c4"
+    },
+    "annotate_videos.py": {
+      "size_bytes": 6325,
+      "sha256": "79dfbfeeaa73932767602f350409f8daa9b4cf67bb509052f4775ad19a8a4692"
+    },
+    "appearance_reid.py": {
+      "size_bytes": 6882,
+      "sha256": "89b567d01b76b22fe4abe0ffc4d15d54dafed44efb047ebefe29c60f07886263"
+    },
+    "bilateral_gait_continuity.py": {
+      "size_bytes": 8661,
+      "sha256": "20484642f2c654338bd685dd42c2aeb085fe1adc01826f1b4ddb0543de8011af"
+    },
+    "body_boundary_rules.py": {
+      "size_bytes": 12735,
+      "sha256": "612493984940a26491e57a6d8f04697088e8076b84ce2b3345c9b1d1487dc50a"
+    },
+    "bounded_action_bridge.py": {
+      "size_bytes": 4529,
+      "sha256": "55dd719888ed1cedd231b7a425732430425d49d0920eea95b0a5bc2afbaa3879"
+    },
+    "bytetrack_actions.yaml": {
+      "size_bytes": 224,
+      "sha256": "872b5b16bb4243543436147f41695d9db66516ddf8895ab6b98408715e4b3d0f"
+    },
+    "cleanup_summary.json": {
+      "size_bytes": 142,
+      "sha256": "ac6753a6a890945b3c3e929efe0e8c20ca959023f2ef619b125fe4b2666c729f"
+    },
+    "cropped_gait.py": {
+      "size_bytes": 23550,
+      "sha256": "897684b37e7db07efaf6c31e4fe58ef597764bc31c754bfdc79900c92faf6e64"
+    },
+    "cropped_passage.py": {
+      "size_bytes": 11728,
+      "sha256": "b5380354e202fc48af35e340eaa246624c776f93dfa8e286f4fb4a1d6f07b653"
+    },
+    "display_ids.py": {
+      "size_bytes": 2020,
+      "sha256": "0b16bb1d6a93f8ccfd75221a6396cd63fd299827ea3f76307e652bb1abdd40f5"
+    },
+    "final_parameters.json": {
+      "size_bytes": 1098,
+      "sha256": "49a0aa85673926e5418c112d283ac57e5bfc6e029640de8af591b9bad2ab1b05"
+    },
+    "flat_depiction.py": {
+      "size_bytes": 9398,
+      "sha256": "b65adc70a2a3681be54318eb922eff69844b5d1b5d59332ca202688fd5b4db40"
+    },
+    "front_onset_rules.py": {
+      "size_bytes": 4801,
+      "sha256": "8885619d426568e74317576c7c05a3296aa1c128f9c80d793f6c8e66ef80de16"
+    },
+    "front_recovery_rules.py": {
+      "size_bytes": 1813,
+      "sha256": "735a2b167578deaf02a7ee92022915480f76668883fe45fa5ca6f41eb3dd33a2"
+    },
+    "gait_evidence.py": {
+      "size_bytes": 15569,
+      "sha256": "24f903721eb05aca81fdc2ce26a1cfd9eeff14a9a544c34a3dfc7559e3b3174d"
+    },
+    "gait_gap_evidence.py": {
+      "size_bytes": 5279,
+      "sha256": "9b2853dacb0b2a528db7a1eba17e889b90e66c8611b7d32b0bccd1197a77a513"
+    },
+    "gait_ground.py": {
+      "size_bytes": 9180,
+      "sha256": "0ac042deee206e000d67efbeb281844baa7e48f742a59982efc70cc60b194555"
+    },
+    "gait_phase.py": {
+      "size_bytes": 14930,
+      "sha256": "712eaa459c944a11cb327a7e68ece140771ba33c5b95f7f847d44df74a8fec3d"
+    },
+    "gait_switch.py": {
+      "size_bytes": 6905,
+      "sha256": "231c95bc60fbc26728a4d129176dcb7dcbf43646875a249200d26f2fa9e1054e"
+    },
+    "glass_surface.py": {
+      "size_bytes": 3599,
+      "sha256": "90fb36841c34f2c7cabb40628e7a0a1145336984d53c78019dafc2975b8da38f"
+    },
+    "grade_repetitions.py": {
+      "size_bytes": 26569,
+      "sha256": "640cf1d42c02dedd22b648e8c8781568c475b6c6314ae3b5aeff742febf75326"
+    },
+    "grading_config.json": {
+      "size_bytes": 2581,
+      "sha256": "3005ee2fa6973a387dca91b9da41817cd07b80982957b0fe81ee95c21199cb65"
+    },
+    "grading_pose_features.py": {
+      "size_bytes": 2891,
+      "sha256": "b499146adb4aa146b236f31615a667b8e722ac76817adde20d434e841d694cd0"
+    },
+    "indirect_video_cues.py": {
+      "size_bytes": 10711,
+      "sha256": "6d160bad02210b12f62c1aa75eff7926ad662c3abb94080225641c90d3092543"
+    },
+    "individual_quality.py": {
+      "size_bytes": 16635,
+      "sha256": "fc4cfc7d795e7d86fa7f4a5fc721b5c11d5c971e8747d53108f57266e639d5bc"
+    },
+    "intercycle_reset_rules.py": {
+      "size_bytes": 5632,
+      "sha256": "3924870f1fafa6bcc7dae27124513594f8c0db5b669de1db40f565c40111cc28"
+    },
+    "layout_map.example.json": {
+      "size_bytes": 224,
+      "sha256": "9cd8d1175487e2cd090d37aadc06206671e8d93ac07da27cc858fa334214cd3a"
+    },
+    "leg_boundary_evidence.py": {
+      "size_bytes": 12018,
+      "sha256": "d3b020959b965aeed03944b287fa7401010b8853d86171d7d1aa81934dd4e721"
+    },
+    "models/yolo26s-pose.pt": {
+      "size_bytes": 24151790,
+      "sha256": "a083adb42303728ae14c4bd6bd56d80da46f82fb2564dbd6f31dcc92ea321646",
+      "storage": "upstream-release-asset",
+      "download_url": "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26s-pose.pt"
+    },
+    "motion_fusion.py": {
+      "size_bytes": 8647,
+      "sha256": "aadd396d84fcf9a5d146a2863eb6c10729d1479125ba0b1a095a6390afc32818"
+    },
+    "multi_action_analysis.py": {
+      "size_bytes": 19018,
+      "sha256": "f093be47188d7c74c9da6d5a81ee5f58095c0758d4e9cf73c613e5af9148dd13"
+    },
+    "multi_action_preview.py": {
+      "size_bytes": 10367,
+      "sha256": "dcfaa9d2b4c8b6539843ce9573c1a9a1f9d81cdcf17b1cbe3227e20ab253a679"
+    },
+    "multi_labels.py": {
+      "size_bytes": 2079,
+      "sha256": "7875ea334fe6e33ae0f2a9de7d3f14a53f6521a76f84f394fa1263815fcf9cf3"
+    },
+    "multi_track.py": {
+      "size_bytes": 4390,
+      "sha256": "e6f382b531f1c1cf8adab91663c02b9605673519544c32a66a50b2b03d93d362"
+    },
+    "multiview_config.json": {
+      "size_bytes": 550,
+      "sha256": "f3c097f5906131b5ece527d8d834ef333b4eebdd9c69759a6a64bde2b91199bc"
+    },
+    "multiview_fusion.py": {
+      "size_bytes": 11098,
+      "sha256": "4c99aa673e27f65eea5f1dcbcc4d11f7867c94b705229e9de6e19916092aee42"
+    },
+    "multiview_pipeline.py": {
+      "size_bytes": 22596,
+      "sha256": "c0ee88afaf242830f9590e54b44c948f1b496004d5f4f9a03440ea2fb97bfb61"
+    },
+    "observable_grading.py": {
+      "size_bytes": 10574,
+      "sha256": "71e2c6767671674f0d84da1b8191d543cbb0aa253871bcf662171d198ddb792a"
+    },
+    "package_version.json": {
+      "size_bytes": 1104,
+      "sha256": "28f89ccfa8e8d0f367e0208972d6726a254ff10d6dbe6c583e0876df959005c5"
+    },
+    "package_version_v4_4_legacy.json": {
+      "size_bytes": 236,
+      "sha256": "abc1709f537e76cdd2c8b3f86c5aad6366469a095d317849b370e0f6402e3d5e"
+    },
+    "package_version_v4_5_legacy.json": {
+      "size_bytes": 513,
+      "sha256": "477f320262c93bf49eff79de25474674cdcdd059fc7cf879edb197eb8d9969cc"
+    },
+    "package_version_v4_6_legacy.json": {
+      "size_bytes": 252,
+      "sha256": "8ec405d9730c8abaa33448ea68bf205eddd26031557b124b6d8f04ff927fd0a0"
+    },
+    "person_evidence.py": {
+      "size_bytes": 4056,
+      "sha256": "a975ad094ea5e2e9835ba6d2731b90a1a85d33913b5ba16a8deb41e1b35b1bb0"
+    },
+    "personal_short_run.py": {
+      "size_bytes": 3010,
+      "sha256": "f7a15881076be969244b8350ebdb1a3f8312f1b359dc45a04b4bf09990739189"
+    },
+    "pipeline_preview.py": {
+      "size_bytes": 6457,
+      "sha256": "58c05fd11304a990e6ae90e33a35e328493009b7d6f7a73e14b0999b547f9907"
+    },
+    "pose_geometry.py": {
+      "size_bytes": 2573,
+      "sha256": "06b79e104e4b85d2ead21d85ecaa494bf73c9759b28161d912e615ccd0d87f04"
+    },
+    "prepare_and_label.py": {
+      "size_bytes": 8528,
+      "sha256": "9aa61745331e5e35e4cb06c16ddf5976209bbd9956d6da0d32fc32b991c6be9f"
+    },
+    "recognize_actions.py": {
+      "size_bytes": 683,
+      "sha256": "dd351ece806a006a2d217ca5ee68f46fd6f70dd21251903c993a22b239d2863c"
+    },
+    "recognize_multi_actions.py": {
+      "size_bytes": 18416,
+      "sha256": "27b06734465632943d9c2ed79f45da08edac1c4f544779a4ba29a479d3dddbe6"
+    },
+    "reference_parameters.json": {
+      "size_bytes": 292,
+      "sha256": "ac2e6bbcc9119ef333c62c9aecb3fc2f8af59509548033d9063dbdcbcad7412b"
+    },
+    "requirements.txt": {
+      "size_bytes": 137,
+      "sha256": "53f9932c65807ea7048d2391d5919201923eb9f580ccc58e9799a7418495d071"
+    },
+    "run.py": {
+      "size_bytes": 14781,
+      "sha256": "42bcda1f2fc4fdf7d9b1259e1222ff9364071bf38784fd7926d1a13a919166a5"
+    },
+    "run_actions_local.py": {
+      "size_bytes": 325,
+      "sha256": "dc357a311916d6af2c3513cfc8bf2120b4454973494e2f4ca3a9f29571bd43f2"
+    },
+    "run_local.py": {
+      "size_bytes": 557,
+      "sha256": "67022c2670c1526d125c82e7b124e00a32e31574d0fbb887d10fe1b24b8b0495"
+    },
+    "running_rebound.py": {
+      "size_bytes": 5078,
+      "sha256": "6383f4a46cd3b106ac684d46b9e5dff6e1c6ac3ede383af13869075d1c38702f"
+    },
+    "running_turn.py": {
+      "size_bytes": 7119,
+      "sha256": "4cc343d0e1465fbf5384fe486e73e470910cf4c2859193a72c31190bd9e91bb7"
+    },
+    "scene_ignore.py": {
+      "size_bytes": 2098,
+      "sha256": "fceda9b443923baf8968e0c86332347b92eb715528cd244e6987d840e76f6676"
+    },
+    "side_onset_rules.py": {
+      "size_bytes": 10997,
+      "sha256": "b4a94d0535220fb8df4ff58a22a507e688ce545e538c9cb62e7a39e9187cd018"
+    },
+    "source_package.json": {
+      "size_bytes": 506,
+      "sha256": "26bd7070f7c40b274618db7981ea014813dac0527769adeca5a45cd9e52ba56e"
+    },
+    "squat_bouts.py": {
+      "size_bytes": 5430,
+      "sha256": "2132d670af95f7c7073f9e4db41c30f14832856b592e5365d0306a704824d5d5"
+    },
+    "stair_evidence.py": {
+      "size_bytes": 11574,
+      "sha256": "b14d70cd776f6f970cfa4066d5c83556a3984f0977ddd77337c1dcd5e9e3faf2"
+    },
+    "standing_turn.py": {
+      "size_bytes": 13190,
+      "sha256": "655623d3514f30397ec418411e1a0ef015d684502a0b7fc89b941ab30907d54d"
+    },
+    "tests/fixtures/cropped_gait_flow_regression.npz": {
+      "size_bytes": 25036,
+      "sha256": "0de37d1521b084ed5911be55a33cd30fdc5760ad96d39def8cc2ae715daaacec"
+    },
+    "tests/fixtures/intercycle_reset_pose.npz": {
+      "size_bytes": 242246,
+      "sha256": "374d5d9c457e4e2da261b9d35cd408e9fb50ef1eab7b6022adc3554cb094bc7f"
+    },
+    "tests/fixtures/side_109_pose.npz": {
+      "size_bytes": 149671,
+      "sha256": "ddb926dba4c1618d79bfe8cdc5b97e3a30b78dcf1d952ccbf17df81712eab168"
+    },
+    "tests/fixtures/side_entry_pose.npz": {
+      "size_bytes": 24656,
+      "sha256": "47f4e030199b9b976deb90d189ba21413aa900c46fb36adaedb1dd215afdead7"
+    },
+    "tests/test_action_boundaries.py": {
+      "size_bytes": 7496,
+      "sha256": "e4e942404210b89968c845916e5aab6ad7c0b26c56dccb6907bd7cd4dbc79e47"
+    },
+    "tests/test_action_temporal.py": {
+      "size_bytes": 6284,
+      "sha256": "e9491f37bf0d63784062f4d17ad4f6625dea5c7862da2888f3fa67726b9a901b"
+    },
+    "tests/test_adaptive_cycle_gait_r8.py": {
+      "size_bytes": 2935,
+      "sha256": "0d57d558637990b036c8df788d20f2c2bbd0f4d5702a00dd64ae3fcb0419d8ff"
+    },
+    "tests/test_adaptive_gait_and_stairs.py": {
+      "size_bytes": 6004,
+      "sha256": "5ea908413b8586c690088e09e4c033d470abf0debc03e7c0e8cb232779ed9f97"
+    },
+    "tests/test_bilateral_gait_r11.py": {
+      "size_bytes": 2534,
+      "sha256": "6b35b19c11f9ee1b19cbd1ce00364523e2921784e481c8329c921108a9fc11cc"
+    },
+    "tests/test_bounded_action_bridge.py": {
+      "size_bytes": 3508,
+      "sha256": "f8ec06c8a7f8833ad2506bf802926519785057b6c842eed9873e55f35fbf60f8"
+    },
+    "tests/test_camera_fragment_edges_r14.py": {
+      "size_bytes": 2544,
+      "sha256": "785e01090e78e7927825a966bb0e15b800cc48e8d8d5e4d1084a9a41a2f7ab5e"
+    },
+    "tests/test_cropped_gait.py": {
+      "size_bytes": 2296,
+      "sha256": "457f2e14f464baeb49df5144bccf31aacfd4ea3de1d20b0315a56ef36cb7bf30"
+    },
+    "tests/test_cropped_top_band.py": {
+      "size_bytes": 1623,
+      "sha256": "cf0cccf4d850954aa58b4c5bba741ee7996043865cea29dfdadddb1e61f3effb"
+    },
+    "tests/test_flat_depiction.py": {
+      "size_bytes": 2458,
+      "sha256": "43d867a9b383c7ad74925e530e26e6ef0a44dffcc80c48f22f5c6b513c41d409"
+    },
+    "tests/test_gait_evidence.py": {
+      "size_bytes": 4180,
+      "sha256": "d570265a95909504168ec2e902b461b46670adfa036292524e799cde868a7a45"
+    },
+    "tests/test_gait_switch.py": {
+      "size_bytes": 1625,
+      "sha256": "183bc202e05f188243a26f163df9a098753033b6a2f4a892cffd82ba132ac10e"
+    },
+    "tests/test_indirect_video_cues.py": {
+      "size_bytes": 9459,
+      "sha256": "6b4e95e3e7fc5a64d032a3e0db34ad124c73a249330b2b6606a13711c4752c18"
+    },
+    "tests/test_individual_quality.py": {
+      "size_bytes": 11435,
+      "sha256": "0c216483bd49ff0ad209eeee9fe51712fba6ae214bb6acc0a8f7f6321d8cdb87"
+    },
+    "tests/test_leg_boundary_r12.py": {
+      "size_bytes": 2977,
+      "sha256": "82dcf1cbad3618cfaf5fa9aacbcf3ea219e2664b762387318b8fec10f95aab32"
+    },
+    "tests/test_motion_fusion.py": {
+      "size_bytes": 7548,
+      "sha256": "5b3649f6cb2f7a84ca3cc4a767d4d509cd80262fe5b6fca345550228796148f2"
+    },
+    "tests/test_multi_person.py": {
+      "size_bytes": 4749,
+      "sha256": "7a532ebb16ea1e00a288735474367602fc5cf010f27949a2f1519f9fea0ab837"
+    },
+    "tests/test_multiview.py": {
+      "size_bytes": 9139,
+      "sha256": "07688992486b4d100d34f4c6e502551d196bfd4dbf6704f19bc574bcd906ba3e"
+    },
+    "tests/test_observable_grading.py": {
+      "size_bytes": 10098,
+      "sha256": "4bbe28d808e484f02220080717c2112a49474a076f54cec381043c2b8f609141"
+    },
+    "tests/test_person_evidence.py": {
+      "size_bytes": 4985,
+      "sha256": "4fd4af8d6a5005e2b24fb7d4dc4dbf8230fd610f2c089f34ccaa1cdadc8d54e5"
+    },
+    "tests/test_person_staggered_turn.py": {
+      "size_bytes": 4300,
+      "sha256": "1820878e3fbd2c3bd713c5c802c0a52d79dd603134c69ba3e141fa30dd8dfad5"
+    },
+    "tests/test_personal_short_run.py": {
+      "size_bytes": 3146,
+      "sha256": "cf50e4147f37c1fbec3742b4547e325f666e66f3165f105f0e3b58d1d65d4f85"
+    },
+    "tests/test_r1_reentry_and_run.py": {
+      "size_bytes": 4049,
+      "sha256": "df1455380d6a56d95813f0041278100afa88b2aff2e0e83e797d875cd991356d"
+    },
+    "tests/test_r2_display_ids.py": {
+      "size_bytes": 2446,
+      "sha256": "36073f7811c76d942f45c6e6d1a4aa3c2b22fbc96d62e5de92bb39481a9ea4f5"
+    },
+    "tests/test_result_reuse.py": {
+      "size_bytes": 1730,
+      "sha256": "350cc201ba953aaaef586d50a959836aae8e20b1ecee7c88b1c717cc5b767536"
+    },
+    "tests/test_running_turn_r9.py": {
+      "size_bytes": 3918,
+      "sha256": "bdecbf789f6a050d26e12472034f4927dc8c3d4f97f2db66dbbbb161245372c7"
+    },
+    "tests/test_squat_bouts.py": {
+      "size_bytes": 3310,
+      "sha256": "c39c341e52346af192c5b52cc7d4769cd6011a46181181283f9f4b7bb08f6431"
+    },
+    "tests/test_surface_and_walk_r10.py": {
+      "size_bytes": 4657,
+      "sha256": "03e73aa6c5cafd919d5d5bb39eb05a459547b05938542fc70e08100104a1bfad"
+    },
+    "tests/test_tiered_actions.py": {
+      "size_bytes": 2851,
+      "sha256": "d0b31979b7c99608a1545d28b15eac6ae81a800277df694bf4639d3daa4b2b0c"
+    },
+    "tests/test_turn_gait_r13.py": {
+      "size_bytes": 3685,
+      "sha256": "243f318b8e13df4e3ad67e61ece35231f784da51897983f1058796a52236dff3"
+    },
+    "tests/test_video_v4_integration.py": {
+      "size_bytes": 2795,
+      "sha256": "4a974eae507d87de398370c2b553d4fa37991894c5815fa212b6ecfff5bf418f"
+    },
+    "tests/video/test_body_boundaries.py": {
+      "size_bytes": 2538,
+      "sha256": "f2bde5c0c17efaea17e4324839223b75e0f544a6cdd2783abfd44fa41d67d169"
+    },
+    "tests/video/test_front_onsets.py": {
+      "size_bytes": 2458,
+      "sha256": "69d2b800ca111dc6c0187803c183e2b9d275cbcf51556a13b9e86755ce076bab"
+    },
+    "tests/video/test_front_recovery.py": {
+      "size_bytes": 1854,
+      "sha256": "145f0fd81c3b99804bcf36ba9e53745ca74983d6103a1eeac34aff15922df58d"
+    },
+    "tests/video/test_intercycle_resets.py": {
+      "size_bytes": 4145,
+      "sha256": "8d2f0237b8f882f9c06d010d44bb8efda897c07e03778b6d3ddf50c932c1f276"
+    },
+    "tests/video/test_side_onsets.py": {
+      "size_bytes": 4303,
+      "sha256": "e8d7fbea67feb7c64582fb300cdd57463a9400fde0857b5a81dfbc2136e0a722"
+    },
+    "tests/video/test_side_torso_onsets.py": {
+      "size_bytes": 3810,
+      "sha256": "b246cfe720697533a7bc498fcfb001a61ae03f4cd33a7326bce7791227f27e75"
+    },
+    "tests/video/test_terminal_recovery.py": {
+      "size_bytes": 2333,
+      "sha256": "a06d0e25f65ca3d2e3b937bfe99c74083bdac5898914977edf550ba65aacdcf8"
+    },
+    "tests/video/test_view_rules.py": {
+      "size_bytes": 3220,
+      "sha256": "f8a6db3e500631fa200ddca446cbd0ce0b9e05d12788ce34eeedc080ad268a6c"
+    },
+    "track_reconnect.py": {
+      "size_bytes": 6042,
+      "sha256": "059857034619b5529f903b89006b7cae08f27251aced722635382e9721384376"
+    },
+    "video_pipeline_adapter.py": {
+      "size_bytes": 3414,
+      "sha256": "6ecec946a461bdc7617331437d63ad1fb2437d8d4db97ffd357c41e41e8fd8d8"
+    },
+    "video_to_intervals.py": {
+      "size_bytes": 24265,
+      "sha256": "c83cd4de38b9f94727a0511133212d20a9841ee4a15234dcee8188952d5ac0d5"
+    },
+    "view_body_rules.py": {
+      "size_bytes": 11310,
+      "sha256": "bdc65e02f4ac2c679b5b91af8053bc28114e80ac0ccfda3495127edd9c778389"
+    },
+    "walk_continuity.py": {
+      "size_bytes": 4702,
+      "sha256": "aecb73bd958aaa90e0b3e82c4cea9143a498eeebc380ae5cb717236ec69a109c"
+    }
+  }
+}

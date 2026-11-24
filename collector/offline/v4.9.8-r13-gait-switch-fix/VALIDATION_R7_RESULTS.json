@@ -1,0 +1,128 @@
+{
+  "20261119-134801": {
+    "source_frames": 2558,
+    "public_ids_r6": 2,
+    "public_ids_r7": 2,
+    "squat_events": 24,
+    "screen_labels": {
+      "站立": 636,
+      "其他": 509,
+      "走路": 1662,
+      "走路候选": 177,
+      "走路候选 / 跑步候选": 8,
+      "跑步": 379,
+      "跑步候选": 8,
+      "深蹲": 1490,
+      "站立候选": 14
+    },
+    "flat_depiction_audit": [],
+    "action_and_id_tables_identical": true
+  },
+  "20261119-161221": {
+    "source_frames": 1604,
+    "public_ids_r6": 1,
+    "public_ids_r7": 1,
+    "squat_events": 0,
+    "screen_labels": {
+      "站立": 72,
+      "其他": 156,
+      "走路": 253,
+      "上楼梯": 581,
+      "下楼梯": 514,
+      "走路候选": 26,
+      "站立候选": 2
+    },
+    "flat_depiction_audit": [],
+    "action_and_id_tables_identical": true
+  },
+  "20261119-161238": {
+    "source_frames": 925,
+    "public_ids_r6": 2,
+    "public_ids_r7": 2,
+    "squat_events": 24,
+    "screen_labels": {
+      "站立": 257,
+      "其他": 76,
+      "深蹲": 1335,
+      "走路": 105,
+      "走路候选": 22
+    },
+    "flat_depiction_audit": [],
+    "action_and_id_tables_identical": true
+  },
+  "20261120-100136": {
+    "source_frames": 379,
+    "public_ids_r6": 1,
+    "public_ids_r7": 1,
+    "squat_events": 0,
+    "screen_labels": {
+      "站立": 53,
+      "走路": 326
+    },
+    "flat_depiction_audit": [],
+    "action_and_id_tables_identical": true
+  },
+  "20261120-161019": {
+    "source_frames": 2593,
+    "public_ids_r6": 2,
+    "public_ids_r7": 2,
+    "squat_events": 18,
+    "screen_labels": {
+      "其他": 1236,
+      "走路候选": 456,
+      "走路": 1387,
+      "走路候选 / 跑步候选": 24,
+      "跑步": 139,
+      "跑步候选": 12,
+      "深蹲": 925,
+      "站立": 396,
+      "站立候选": 3
+    },
+    "flat_depiction_audit": [],
+    "action_and_id_tables_identical": true
+  },
+  "708ebafe52d6256e6f9d24fd5e27a434": {
+    "source_frames": 173,
+    "public_ids_r6": 1,
+    "public_ids_r7": 0,
+    "squat_events": 0,
+    "screen_labels": {},
+    "flat_depiction_audit": [
+      {
+        "yolo_track_id": "1",
+        "status": "rejected_flat_depiction",
+        "reason": "stationary_wall_registered_texture_with_four_sided_sheet_border",
+        "sampled_frames": "9",
+        "registered_frames": "9",
+        "observed_frames": "150",
+        "removed_observations": "150",
+        "box_height_ratio": "0.0876542091369629",
+        "max_body_change": "3.0",
+        "max_wall_change": "3.0",
+        "minimum_sheet_edge_contrast": "44.89892578125",
+        "start_video_s": "0.7666666666666667",
+        "end_video_s": "5.766666666666667"
+      }
+    ],
+    "preview_audit": {
+      "frame_count": 173,
+      "max_pts_error_s": 0.0,
+      "audio_packets": 271,
+      "audio_sha256": "85ef5b71d2d473e57cad620edd7e793f75fcd5ad699ab46f75103d51b68d4305",
+      "original_audio_preserved": true,
+      "source_display_region_preserved": true,
+      "output_dimensions": [
+        720,
+        1334
+      ],
+      "audio_streams": [
+        {
+          "packets": 271,
+          "sha256": "85ef5b71d2d473e57cad620edd7e793f75fcd5ad699ab46f75103d51b68d4305"
+        }
+      ],
+      "clockwise_correction_deg": 0,
+      "simultaneous_track_overlay": true
+    }
+  }
+}

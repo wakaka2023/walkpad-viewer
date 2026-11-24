@@ -1,0 +1,9 @@
+{
+  "source_package": "深蹲标注_v4.4_间接线索评分_代码权重参数_20261117.zip",
+  "source_sha256": "6b19b0f7bf8b0635ea45f76eaf68e4b049374fc1a0e0ab4eca94dacd618be27e",
+  "protected_files": {
+    "models/yolo26s-pose.pt": "a083adb42303728ae14c4bd6bd56d80da46f82fb2564dbd6f31dcc92ea321646",
+    "final_parameters.json": "49a0aa85673926e5418c112d283ac57e5bfc6e029640de8af591b9bad2ab1b05",
+    "grading_config.json": "3005ee2fa6973a387dca91b9da41817cd07b80982957b0fe81ee95c21199cb65"
+  }
+}

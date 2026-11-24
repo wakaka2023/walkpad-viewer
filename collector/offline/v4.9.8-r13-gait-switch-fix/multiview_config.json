@@ -1,0 +1,15 @@
+{
+  "maximum_bottom_difference_s": 0.4,
+  "minimum_pair_fraction_when_three_each": 0.5,
+  "edge_context_window_s": 0.18,
+  "edge_moving_speed_leg_s": 0.2,
+  "minimum_interval_iou": 0.25,
+  "overlap_duplicate_iou": 0.65,
+  "maximum_duplicate_bottom_difference_s": 0.65,
+  "default_split_ratio": 0.5,
+  "indirect_maximum_level": 1,
+  "require_stable_view_for_fusion": true,
+  "shared_criterion_policy": "maximum_supported_severity_once",
+  "boundary_policy": "best_observed_view_side_on_tie",
+  "missing_criterion_policy": "exclude_and_report_count"
+}

@@ -1,0 +1,16 @@
+{
+  "edition": "4.5",
+  "date": "2026-11-18",
+  "base_edition": "4.4",
+  "grading": "observable-dual-view-v4.5",
+  "segmentation": "4.2.0 view-specific core + edge completeness and temporal fusion",
+  "weights_and_legacy_thresholds_unchanged": true,
+  "changes": [
+    "explicit panel layouts",
+    "chronological one-to-one repetition matching",
+    "observable criterion fusion",
+    "identical overall labels in both panels",
+    "truncated-edge rejection",
+    "original PTS verification"
+  ]
+}

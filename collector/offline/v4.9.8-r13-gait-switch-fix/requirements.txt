@@ -1,0 +1,9 @@
+ultralytics==8.4.211
+av==15.1.0
+numpy==1.26.4
+scipy==1.13.1
+pandas==2.3.3
+opencv-python==4.10.0.84
+lap==0.5.14
+torch>=2.0
+Pillow==11.3.0

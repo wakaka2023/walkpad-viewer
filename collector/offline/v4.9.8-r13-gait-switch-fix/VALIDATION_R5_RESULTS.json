@@ -1,0 +1,224 @@
+{
+  "five_cached_video_regressions": {
+    "20261119-134801": {
+      "frame_count": 2558,
+      "accepted_tracks": 2,
+      "squat_events": 24,
+      "linked_short_gap_r4_to_r5": [
+        4,
+        4
+      ],
+      "clothing_reentries_r4_to_r5": [
+        0,
+        0
+      ],
+      "preserved_accepted_raw_to_public_ids": true,
+      "rejected_raw_track_ids": [
+        5,
+        6
+      ],
+      "observations_removed": 5,
+      "identical_tables": [
+        "frame_labels.csv",
+        "activities.csv",
+        "action_events.csv",
+        "boundary_events.csv",
+        "raw_frame_labels.csv",
+        "raw_activities.csv",
+        "frame_coverage.csv"
+      ],
+      "different_tables": [],
+      "frames_by_activity": {
+        "standing": 650,
+        "unknown": 509,
+        "walking": 1847,
+        "running": 387,
+        "squat": 1490
+      },
+      "static_scene_ignore_unchanged": true
+    },
+    "20261119-161221": {
+      "frame_count": 1604,
+      "accepted_tracks": 1,
+      "squat_events": 0,
+      "linked_short_gap_r4_to_r5": [
+        0,
+        0
+      ],
+      "clothing_reentries_r4_to_r5": [
+        0,
+        0
+      ],
+      "preserved_accepted_raw_to_public_ids": true,
+      "rejected_raw_track_ids": [],
+      "observations_removed": 0,
+      "identical_tables": [
+        "frame_labels.csv",
+        "activities.csv",
+        "action_events.csv",
+        "boundary_events.csv",
+        "raw_frame_labels.csv",
+        "raw_activities.csv",
+        "frame_coverage.csv"
+      ],
+      "different_tables": [],
+      "frames_by_activity": {
+        "standing": 74,
+        "unknown": 156,
+        "walking": 279,
+        "stairs_up": 581,
+        "stairs_down": 514
+      },
+      "static_scene_ignore_unchanged": true
+    },
+    "20261119-161238": {
+      "frame_count": 925,
+      "accepted_tracks": 2,
+      "squat_events": 24,
+      "linked_short_gap_r4_to_r5": [
+        0,
+        0
+      ],
+      "clothing_reentries_r4_to_r5": [
+        0,
+        0
+      ],
+      "preserved_accepted_raw_to_public_ids": true,
+      "rejected_raw_track_ids": [],
+      "observations_removed": 0,
+      "identical_tables": [
+        "frame_labels.csv",
+        "activities.csv",
+        "action_events.csv",
+        "boundary_events.csv",
+        "raw_frame_labels.csv",
+        "raw_activities.csv",
+        "frame_coverage.csv"
+      ],
+      "different_tables": [],
+      "frames_by_activity": {
+        "standing": 257,
+        "unknown": 76,
+        "squat": 1335,
+        "walking": 127
+      },
+      "static_scene_ignore_unchanged": true
+    },
+    "20261120-100136": {
+      "frame_count": 379,
+      "accepted_tracks": 1,
+      "squat_events": 0,
+      "linked_short_gap_r4_to_r5": [
+        0,
+        0
+      ],
+      "clothing_reentries_r4_to_r5": [
+        0,
+        0
+      ],
+      "preserved_accepted_raw_to_public_ids": true,
+      "rejected_raw_track_ids": [],
+      "observations_removed": 0,
+      "identical_tables": [
+        "frame_labels.csv",
+        "activities.csv",
+        "action_events.csv",
+        "boundary_events.csv",
+        "raw_frame_labels.csv",
+        "raw_activities.csv",
+        "frame_coverage.csv"
+      ],
+      "different_tables": [],
+      "frames_by_activity": {
+        "standing": 53,
+        "walking": 326
+      },
+      "static_scene_ignore_unchanged": true
+    },
+    "20261120-161019": {
+      "frame_count": 2593,
+      "accepted_tracks": 2,
+      "squat_events": 18,
+      "linked_short_gap_r4_to_r5": [
+        5,
+        5
+      ],
+      "clothing_reentries_r4_to_r5": [
+        5,
+        5
+      ],
+      "preserved_accepted_raw_to_public_ids": true,
+      "rejected_raw_track_ids": [
+        9
+      ],
+      "observations_removed": 3,
+      "identical_tables": [
+        "frame_labels.csv",
+        "activities.csv",
+        "action_events.csv",
+        "boundary_events.csv",
+        "raw_frame_labels.csv",
+        "raw_activities.csv",
+        "frame_coverage.csv"
+      ],
+      "different_tables": [],
+      "frames_by_activity": {
+        "unknown": 1248,
+        "walking": 1867,
+        "running": 139,
+        "squat": 925,
+        "standing": 399
+      },
+      "static_scene_ignore_unchanged": true
+    }
+  },
+  "injected_negative_control": {
+    "r4": {
+      "public_ids": 3,
+      "track_id_map": [
+        {
+          "yolo_track_id": "7",
+          "track_id": "1",
+          "internal_track_id": "7",
+          "status": "accepted"
+        },
+        {
+          "yolo_track_id": "8",
+          "track_id": "2",
+          "internal_track_id": "8",
+          "status": "accepted"
+        },
+        {
+          "yolo_track_id": "9",
+          "track_id": "3",
+          "internal_track_id": "9",
+          "status": "accepted"
+        }
+      ]
+    },
+    "r5": {
+      "public_ids": 0,
+      "track_id_map": [
+        {
+          "yolo_track_id": "7",
+          "track_id": "",
+          "internal_track_id": "",
+          "status": "rejected_person_evidence"
+        },
+        {
+          "yolo_track_id": "8",
+          "track_id": "",
+          "internal_track_id": "",
+          "status": "rejected_person_evidence"
+        },
+        {
+          "yolo_track_id": "9",
+          "track_id": "",
+          "internal_track_id": "",
+          "status": "rejected_person_evidence"
+        }
+      ]
+    }
+  },
+  "model_sha256": "a083adb42303728ae14c4bd6bd56d80da46f82fb2564dbd6f31dcc92ea321646"
+}

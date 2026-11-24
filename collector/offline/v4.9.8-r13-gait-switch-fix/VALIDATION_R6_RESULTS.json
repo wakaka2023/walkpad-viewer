@@ -1,0 +1,241 @@
+{
+  "20261119-134801": {
+    "source_frames": 2558,
+    "display_ids": 2,
+    "squat_events": 24,
+    "cached_tracks_camera_identical": true,
+    "identities_squat_and_static_filter_identical": true,
+    "frame_label_counts": {
+      "站立": 636,
+      "其他": 509,
+      "走路": 1662,
+      "走路候选": 177,
+      "走路候选 / 跑步候选": 8,
+      "跑步": 379,
+      "跑步候选": 8,
+      "深蹲": 1490,
+      "站立候选": 14
+    },
+    "changes": [],
+    "preview_audit": null
+  },
+  "20261119-161221": {
+    "source_frames": 1604,
+    "display_ids": 1,
+    "squat_events": 0,
+    "cached_tracks_camera_identical": true,
+    "identities_squat_and_static_filter_identical": true,
+    "frame_label_counts": {
+      "站立": 72,
+      "其他": 156,
+      "走路": 253,
+      "上楼梯": 581,
+      "下楼梯": 514,
+      "走路候选": 26,
+      "站立候选": 2
+    },
+    "changes": [],
+    "preview_audit": null
+  },
+  "20261119-161238": {
+    "source_frames": 925,
+    "display_ids": 2,
+    "squat_events": 24,
+    "cached_tracks_camera_identical": true,
+    "identities_squat_and_static_filter_identical": true,
+    "frame_label_counts": {
+      "站立": 257,
+      "其他": 76,
+      "深蹲": 1335,
+      "走路": 105,
+      "走路候选": 22
+    },
+    "changes": [],
+    "preview_audit": null
+  },
+  "20261120-100136": {
+    "source_frames": 379,
+    "display_ids": 1,
+    "squat_events": 0,
+    "cached_tracks_camera_identical": true,
+    "identities_squat_and_static_filter_identical": true,
+    "frame_label_counts": {
+      "站立": 53,
+      "走路": 326
+    },
+    "changes": [],
+    "preview_audit": null
+  },
+  "20261120-161019": {
+    "source_frames": 2593,
+    "display_ids": 2,
+    "squat_events": 18,
+    "cached_tracks_camera_identical": true,
+    "identities_squat_and_static_filter_identical": true,
+    "frame_label_counts": {
+      "其他": 1236,
+      "走路候选": 456,
+      "走路": 1387,
+      "走路候选 / 跑步候选": 24,
+      "跑步": 139,
+      "跑步候选": 12,
+      "深蹲": 925,
+      "站立": 396,
+      "站立候选": 3
+    },
+    "changes": [
+      {
+        "track_id": 1,
+        "frame": 1395,
+        "start": 46.615433333333335,
+        "end": 46.64873333333333,
+        "before": "其他",
+        "after": "跑步候选",
+        "before_activity": "unknown",
+        "after_activity": "running",
+        "evidence": "personal_short_running_candidate"
+      },
+      {
+        "track_id": 1,
+        "frame": 1396,
+        "start": 46.64873333333333,
+        "end": 46.68203333333334,
+        "before": "其他",
+        "after": "跑步候选",
+        "before_activity": "unknown",
+        "after_activity": "running",
+        "evidence": "personal_short_running_candidate"
+      },
+      {
+        "track_id": 1,
+        "frame": 1397,
+        "start": 46.68203333333334,
+        "end": 46.71536666666667,
+        "before": "其他",
+        "after": "跑步候选",
+        "before_activity": "unknown",
+        "after_activity": "running",
+        "evidence": "personal_short_running_candidate"
+      },
+      {
+        "track_id": 1,
+        "frame": 1398,
+        "start": 46.71536666666667,
+        "end": 46.7488,
+        "before": "其他",
+        "after": "跑步候选",
+        "before_activity": "unknown",
+        "after_activity": "running",
+        "evidence": "personal_short_running_candidate"
+      },
+      {
+        "track_id": 1,
+        "frame": 1399,
+        "start": 46.7488,
+        "end": 46.782066666666665,
+        "before": "其他",
+        "after": "跑步候选",
+        "before_activity": "unknown",
+        "after_activity": "running",
+        "evidence": "personal_short_running_candidate"
+      },
+      {
+        "track_id": 1,
+        "frame": 1400,
+        "start": 46.782066666666665,
+        "end": 46.815333333333335,
+        "before": "其他",
+        "after": "跑步候选",
+        "before_activity": "unknown",
+        "after_activity": "running",
+        "evidence": "personal_short_running_candidate"
+      },
+      {
+        "track_id": 1,
+        "frame": 1401,
+        "start": 46.815333333333335,
+        "end": 46.848733333333335,
+        "before": "其他",
+        "after": "跑步候选",
+        "before_activity": "unknown",
+        "after_activity": "running",
+        "evidence": "personal_short_running_candidate"
+      },
+      {
+        "track_id": 1,
+        "frame": 1402,
+        "start": 46.848733333333335,
+        "end": 46.8819,
+        "before": "其他",
+        "after": "跑步候选",
+        "before_activity": "unknown",
+        "after_activity": "running",
+        "evidence": "personal_short_running_candidate"
+      },
+      {
+        "track_id": 1,
+        "frame": 1403,
+        "start": 46.8819,
+        "end": 46.915166666666664,
+        "before": "其他",
+        "after": "跑步候选",
+        "before_activity": "unknown",
+        "after_activity": "running",
+        "evidence": "personal_short_running_candidate"
+      },
+      {
+        "track_id": 1,
+        "frame": 1404,
+        "start": 46.915166666666664,
+        "end": 46.948566666666665,
+        "before": "其他",
+        "after": "跑步候选",
+        "before_activity": "unknown",
+        "after_activity": "running",
+        "evidence": "personal_short_running_candidate"
+      },
+      {
+        "track_id": 1,
+        "frame": 1405,
+        "start": 46.948566666666665,
+        "end": 46.98193333333333,
+        "before": "其他",
+        "after": "跑步候选",
+        "before_activity": "unknown",
+        "after_activity": "running",
+        "evidence": "personal_short_running_candidate"
+      },
+      {
+        "track_id": 1,
+        "frame": 1406,
+        "start": 46.98193333333333,
+        "end": 47.01526666666667,
+        "before": "其他",
+        "after": "跑步候选",
+        "before_activity": "unknown",
+        "after_activity": "running",
+        "evidence": "personal_short_running_candidate"
+      }
+    ],
+    "preview_audit": {
+      "frame_count": 2593,
+      "max_pts_error_s": 0.0,
+      "audio_packets": 4056,
+      "audio_sha256": "022df4e35e0d78c64894ac68d22d0dd355c7339151fee98ffd21801673b809d3",
+      "original_audio_preserved": true,
+      "source_display_region_preserved": true,
+      "output_dimensions": [
+        1920,
+        1134
+      ],
+      "audio_streams": [
+        {
+          "packets": 4056,
+          "sha256": "022df4e35e0d78c64894ac68d22d0dd355c7339151fee98ffd21801673b809d3"
+        }
+      ],
+      "clockwise_correction_deg": 0,
+      "simultaneous_track_overlay": true
+    }
+  }
+}

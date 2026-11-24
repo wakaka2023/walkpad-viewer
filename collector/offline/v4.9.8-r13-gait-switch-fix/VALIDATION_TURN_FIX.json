@@ -1,0 +1,511 @@
+{
+  "base": "v4.9.8-r13-camera-fix",
+  "clips": [
+    {
+      "clip": "20261123-181950",
+      "isolation": {
+        "1": 2062,
+        "2": 268
+      },
+      "label_deltas": [
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "standing",
+            "站立",
+            "supported"
+          ],
+          "end_s": 11.333333333333334,
+          "frames": 1,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 11.3,
+          "track_id": 1
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "standing",
+            "站立",
+            "supported"
+          ],
+          "end_s": 31.866666666666667,
+          "frames": 5,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 31.7,
+          "track_id": 1
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "unknown",
+            "其他",
+            "other"
+          ],
+          "end_s": 31.933333333333334,
+          "frames": 2,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 31.866666666666667,
+          "track_id": 1
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "walking",
+            "走路",
+            "supported"
+          ],
+          "end_s": 32.46666666666667,
+          "frames": 16,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 31.933333333333334,
+          "track_id": 1
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "walking",
+            "走路",
+            "supported"
+          ],
+          "end_s": 45.53333333333333,
+          "frames": 11,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 45.166666666666664,
+          "track_id": 1
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身候选",
+            "candidate"
+          ],
+          "before": [
+            "unknown",
+            "其他",
+            "other"
+          ],
+          "end_s": 60.2,
+          "frames": 7,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 59.96666666666667,
+          "track_id": 1
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身候选",
+            "candidate"
+          ],
+          "before": [
+            "walking",
+            "走路",
+            "supported"
+          ],
+          "end_s": 60.233333333333334,
+          "frames": 1,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 60.2,
+          "track_id": 1
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "walking",
+            "走路",
+            "supported"
+          ],
+          "end_s": 68.86666666666666,
+          "frames": 24,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 68.06666666666666,
+          "track_id": 1
+        }
+      ],
+      "observed_pose_count": 2120
+    },
+    {
+      "clip": "20261120-161019",
+      "isolation": {
+        "1": 2389,
+        "2": 2189
+      },
+      "label_deltas": [
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "walking",
+            "走路",
+            "supported"
+          ],
+          "end_s": 7.130333333333334,
+          "frames": 20,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 6.464066666666667,
+          "track_id": 1
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "walking",
+            "走路",
+            "supported"
+          ],
+          "end_s": 29.954966666666667,
+          "frames": 22,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 29.1888,
+          "track_id": 1
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "walking",
+            "走路候选 / 跑步候选",
+            "candidate"
+          ],
+          "end_s": 34.68686666666667,
+          "frames": 2,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 34.61983333333333,
+          "track_id": 1
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "walking",
+            "走路候选",
+            "candidate"
+          ],
+          "end_s": 34.85373333333333,
+          "frames": 5,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 34.68686666666667,
+          "track_id": 1
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "walking",
+            "走路",
+            "supported"
+          ],
+          "end_s": 35.486466666666665,
+          "frames": 19,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 34.85373333333333,
+          "track_id": 1
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "walking",
+            "走路",
+            "supported"
+          ],
+          "end_s": 44.28296666666667,
+          "frames": 10,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 43.94976666666667,
+          "track_id": 1
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "walking",
+            "走路",
+            "supported"
+          ],
+          "end_s": 20.1589,
+          "frames": 17,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 19.5924,
+          "track_id": 2
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身候选",
+            "candidate"
+          ],
+          "before": [
+            "standing",
+            "站立",
+            "supported"
+          ],
+          "end_s": 22.424633333333333,
+          "frames": 7,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 22.191333333333333,
+          "track_id": 2
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "standing",
+            "站立",
+            "supported"
+          ],
+          "end_s": 23.557766666666666,
+          "frames": 3,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 23.457533333333334,
+          "track_id": 2
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "standing",
+            "站立",
+            "supported"
+          ],
+          "end_s": 24.957166666666666,
+          "frames": 10,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 24.62376666666667,
+          "track_id": 2
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "unknown",
+            "其他",
+            "other"
+          ],
+          "end_s": 24.990233333333332,
+          "frames": 1,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 24.957166666666666,
+          "track_id": 2
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "walking",
+            "走路",
+            "supported"
+          ],
+          "end_s": 25.8567,
+          "frames": 26,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 24.990233333333332,
+          "track_id": 2
+        }
+      ],
+      "observed_pose_count": 3760
+    },
+    {
+      "clip": "20261119-134801",
+      "isolation": {
+        "1": 2558,
+        "2": 2325
+      },
+      "label_deltas": [
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "walking",
+            "走路",
+            "supported"
+          ],
+          "end_s": 17.626966666666668,
+          "frames": 13,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 17.193833333333334,
+          "track_id": 1
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身候选",
+            "candidate"
+          ],
+          "before": [
+            "standing",
+            "站立",
+            "supported"
+          ],
+          "end_s": 35.4886,
+          "frames": 4,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 35.35353333333333,
+          "track_id": 2
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身候选",
+            "candidate"
+          ],
+          "before": [
+            "unknown",
+            "其他",
+            "other"
+          ],
+          "end_s": 35.519866666666665,
+          "frames": 1,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 35.4886,
+          "track_id": 2
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身候选",
+            "candidate"
+          ],
+          "before": [
+            "walking",
+            "走路",
+            "supported"
+          ],
+          "end_s": 35.653166666666664,
+          "frames": 4,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 35.519866666666665,
+          "track_id": 2
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "walking",
+            "走路候选",
+            "candidate"
+          ],
+          "end_s": 59.0109,
+          "frames": 1,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 58.977866666666664,
+          "track_id": 2
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "walking",
+            "走路",
+            "supported"
+          ],
+          "end_s": 59.2441,
+          "frames": 7,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 59.0109,
+          "track_id": 2
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "walking",
+            "走路",
+            "supported"
+          ],
+          "end_s": 70.24016666666667,
+          "frames": 21,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 69.50696666666667,
+          "track_id": 2
+        },
+        {
+          "after": [
+            "standing_turn",
+            "转身",
+            "supported"
+          ],
+          "before": [
+            "walking",
+            "走路",
+            "supported"
+          ],
+          "end_s": 75.83806666666666,
+          "frames": 17,
+          "reason": "observed_person_local_shoulder_hip_and_foot_reorientation",
+          "start_s": 75.2717,
+          "track_id": 2
+        }
+      ],
+      "observed_pose_count": 4759
+    }
+  ]
+}

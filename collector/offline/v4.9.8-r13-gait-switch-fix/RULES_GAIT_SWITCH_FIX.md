@@ -1,0 +1,7 @@
+# v4.9.8-r13-gait-switch-fix
+
+- Before bilateral continuity, compare each observed walk bout with this accepted ID's own confirmed walking and running profiles. A different YOLO fragment can contribute reference observations only after upstream conservative ID association; do not join or interpolate observations across gaps.
+- Use separate pelvis and shoulder signals in the camera-compensated frame, together with bilateral ankle excursion and knee flexion contrast. The observed step period sizes the window and persistence check; it is not used to decide which class is faster. Class comparisons use this ID's own medians and quartiles, not absolute speeds, step rates or a mandatory visible flight phase.
+- Require actual alternating observed limbs and sustained shared rebound, corroborated by a separated leg feature, after preceding observed walking. Missing views, invalid camera alignment, unsupported personal reference profiles, squat events, partial tracks, and non-walk labels are not overwritten by this branch.
+- Preserve the existing version's weights, action parameters, camera boundary fix, turn recognition, and track IDs. CSV marks direct corrections with `person_local_gait_switch` and records prior evidence and three shape descriptors.
+- This is a conservative correction, not support for every walk/run transition: when a person has no independently supported running and walking sample in the video this branch does not fire. The reported clip is a development check, not blind validation.
